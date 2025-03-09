@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Team Management | ESMS League Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .back-link {
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+        
+        .teams-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .team-card {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .team-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .team-header {
+            background-color: #3498db;
+            color: white;
+            padding: 15px;
+            font-weight: bold;
+            font-size: 1.1em;
+            text-align: center;
+        }
+        
+        .team-body {
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .team-actions {
+            display: flex;
+            justify-content: center;
+            margin-top: 15px;
+        }
+        
+        .team-actions a {
+            margin: 0 5px;
+        }
+        
+        .no-teams {
+            text-align: center;
+            padding: 30px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .upload-section {
+            margin-top: 40px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="{{ url_for('index') }}" class="back-link">&larr; Back to Menu</a>
+        
+        <h1>Team Management</h1>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        
+        {% if teams %}
+            <div class="teams-grid">
+                {% for team in teams %}
+                    <div class="team-card">
+                        <div class="team-header">
+                            {{ team.split('/')[-1].split('.')[0] }}
+                        </div>
+                        <div class="team-body">
+                            <div class="team-file">{{ team }}</div>
+                            <div class="team-actions">
+                                <a href="{{ url_for('view_team', team_file=team) }}" class="btn">View Team</a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="no-teams">
+                <p>No team rosters found. Please upload roster files to get started.</p>
+            </div>
+        {% endif %}
+        
+        <div class="upload-section">
+            <h2>Upload New Team Roster</h2>
+            <p>Create a new team by uploading a roster file.</p>
+            
+            <form action="#" method="post" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="roster_file">Roster File:</label>
+                    <input type="file" name="roster_file" id="roster_file" required>
+                    <small>Upload a roster file in the ESMS format</small>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn">Upload Team</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

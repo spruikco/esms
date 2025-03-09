@@ -1,0 +1,514 @@
+from flask import Flask, request, render_template, redirect, url_for, flash, session
+import os
+import shutil
+from werkzeug.utils import secure_filename
+
+# Import our ESMS modules
+from esms.teamsheet import Teamsheet
+from esms.roster import Roster
+from esms.enhanced_match import EnhancedMatchEngine
+from esms.config import Config
+from esms.tactics import tact_manager
+from esms.commentary import commentary_manager
+from esms.statistics import stats_manager
+from esms.updater import get_updater
+
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024  # Limit file size to 1MB
+app.secret_key = 'esms-league-manager-secret-key'  # For flash messages and sessions
+
+# Create necessary directories
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs('samples', exist_ok=True)
+os.makedirs('updated_rosters', exist_ok=True)
+os.makedirs('reports', exist_ok=True)
+os.makedirs('league', exist_ok=True)
+
+# Ensure configuration files exist
+def ensure_config_files():
+    if not os.path.exists('tactics.dat') and os.path.exists('samples/tactics.dat'):
+        shutil.copy('samples/tactics.dat', 'tactics.dat')
+    if not os.path.exists('language.dat') and os.path.exists('samples/language.dat'):
+        shutil.copy('samples/language.dat', 'language.dat')
+
+# Initialize managers
+def initialize_managers():
+    try:
+        tact_manager().init('tactics.dat')
+        print("Tactics manager initialized")
+    except Exception as e:
+        print(f"Warning: Could not initialize tactics manager: {str(e)}")
+    
+    try:
+        commentary_manager().init('language.dat')
+        print("Commentary manager initialized")
+    except Exception as e:
+        print(f"Warning: Could not initialize commentary manager: {str(e)}")
+    
+    # Initialize statistics manager
+    stats_manager().reset_match_stats()
+
+# Run initialization
+ensure_config_files()
+initialize_managers()
+
+# League teams tracking
+league_teams = []
+
+# Read league teams if they exist
+def load_league_teams():
+    global league_teams
+    try:
+        if os.path.exists('league/teams.txt'):
+            with open('league/teams.txt', 'r') as f:
+                league_teams = [line.strip() for line in f if line.strip()]
+    except Exception as e:
+        print(f"Error loading league teams: {str(e)}")
+
+# Save league teams
+def save_league_teams():
+    try:
+        with open('league/teams.txt', 'w') as f:
+            for team in league_teams:
+                f.write(f"{team}\n")
+    except Exception as e:
+        print(f"Error saving league teams: {str(e)}")
+
+# Load league teams on startup
+load_league_teams()
+
+@app.route('/')
+def index():
+    # Check if league table exists
+    has_table = os.path.exists('league/table.txt')
+    
+    return render_template('league_index.html', has_table=has_table, teams=league_teams)
+
+@app.route('/match')
+def match_form():
+    # List available rosters
+    rosters = []
+    for filename in os.listdir():
+        if filename.endswith('.txt') and not filename.endswith('sht.txt'):
+            # Skip known non-roster files
+            if filename not in ['requirements.txt', 'table.txt', 'reports.txt', 'teams.txt']:
+                rosters.append(filename)
+    
+    # Also check updated_rosters directory
+    if os.path.exists('updated_rosters'):
+        for filename in os.listdir('updated_rosters'):
+            if filename.endswith('.txt'):
+                rosters.append(f"updated_rosters/{filename}")
+    
+    return render_template('match_form.html', rosters=rosters)
+
+@app.route('/simulate', methods=['POST'])
+def simulate():
+    try:
+        # Get teamsheet and roster files from form
+        home_teamsheet_file = request.files['home_teamsheet']
+        away_teamsheet_file = request.files['away_teamsheet']
+        home_roster_file = request.files['home_roster']
+        away_roster_file = request.files['away_roster']
+        
+        # Save files temporarily
+        home_ts_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(home_teamsheet_file.filename))
+        away_ts_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(away_teamsheet_file.filename))
+        home_roster_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(home_roster_file.filename))
+        away_roster_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(away_roster_file.filename))
+        
+        home_teamsheet_file.save(home_ts_path)
+        away_teamsheet_file.save(away_ts_path)
+        home_roster_file.save(home_roster_path)
+        away_roster_file.save(away_roster_path)
+        
+        # Read file contents
+        with open(home_ts_path, 'r') as f:
+            home_teamsheet_text = f.read()
+        with open(away_ts_path, 'r') as f:
+            away_teamsheet_text = f.read()
+        with open(home_roster_path, 'r') as f:
+            home_roster_text = f.read()
+        with open(away_roster_path, 'r') as f:
+            away_roster_text = f.read()
+        
+        # Parse teamsheets and rosters
+        home_teamsheet = Teamsheet.parse(home_teamsheet_text)
+        away_teamsheet = Teamsheet.parse(away_teamsheet_text)
+        home_roster = Roster.parse(home_roster_text)
+        away_roster = Roster.parse(away_roster_text)
+        
+        # Set up and run match simulation with the enhanced engine
+        config = Config()  # Using default configuration for now
+        engine = EnhancedMatchEngine(config)
+        
+        home_team = home_roster.to_team(home_teamsheet)
+        away_team = away_roster.to_team(away_teamsheet)
+        
+        # Verify tactics are valid
+        if not tact_manager().tactic_exists(home_team.tactic):
+            home_team.tactic = "N"  # Default to Normal if invalid
+            print(f"Warning: Invalid home team tactic - defaulting to Normal")
+        if not tact_manager().tactic_exists(away_team.tactic):
+            away_team.tactic = "N"  # Default to Normal if invalid
+            print(f"Warning: Invalid away team tactic - defaulting to Normal")
+        
+        # Reset stats manager
+        stats_manager().reset_match_stats()
+        
+        # Run the match
+        engine.setup_match(home_team, away_team)
+        result = engine.run_full_match()
+        
+        # Write match result to reports.txt for league updates
+        try:
+            with open('reports.txt', 'a') as f:
+                f.write(f"{home_team.name} - {away_team.name}: {result['home_score']}-{result['away_score']}\n")
+        except Exception as e:
+            print(f"Error writing to reports.txt: {str(e)}")
+        
+        # Store the result in the session for potential updating
+        session['last_match_result'] = {
+            'home_team': home_team.name,
+            'away_team': away_team.name,
+            'home_score': result['home_score'],
+            'away_score': result['away_score'],
+            'home_roster_path': home_roster_path,
+            'away_roster_path': away_roster_path
+        }
+        
+        return render_template('match.html', result=result, update_available=True)
+    
+    except Exception as e:
+        error_message = f"An error occurred: {str(e)}"
+        return render_template('error.html', error=error_message)
+
+@app.route('/sample')
+def sample():
+    """Provide sample match for testing without file uploads"""
+    
+    # Load sample data
+    try:
+        with open('samples/home_teamsheet.txt', 'r') as f:
+            home_teamsheet_text = f.read()
+        with open('samples/away_teamsheet.txt', 'r') as f:
+            away_teamsheet_text = f.read()
+        with open('samples/home_roster.txt', 'r') as f:
+            home_roster_text = f.read()
+        with open('samples/away_roster.txt', 'r') as f:
+            away_roster_text = f.read()
+    except Exception as e:
+        error_message = f"Could not load sample files: {str(e)}"
+        return render_template('error.html', error=error_message)
+    
+    # Parse teamsheets and rosters
+    home_teamsheet = Teamsheet.parse(home_teamsheet_text)
+    away_teamsheet = Teamsheet.parse(away_teamsheet_text)
+    home_roster = Roster.parse(home_roster_text)
+    away_roster = Roster.parse(away_roster_text)
+    
+    # Set up and run match simulation
+    config = Config()
+    engine = EnhancedMatchEngine(config)
+    
+    home_team = home_roster.to_team(home_teamsheet)
+    away_team = away_roster.to_team(away_teamsheet)
+    
+    # Reset stats manager
+    stats_manager().reset_match_stats()
+    
+    # Run the match
+    engine.setup_match(home_team, away_team)
+    result = engine.run_full_match()
+    
+    # Write match result to reports.txt for league updates
+    try:
+        with open('reports.txt', 'a') as f:
+            f.write(f"{home_team.name} - {away_team.name}: {result['home_score']}-{result['away_score']}\n")
+    except Exception as e:
+        print(f"Error writing to reports.txt: {str(e)}")
+    
+    # Store the result in the session for potential updating
+    session['last_match_result'] = {
+        'home_team': home_team.name,
+        'away_team': away_team.name,
+        'home_score': result['home_score'],
+        'away_score': result['away_score'],
+        'sample': True
+    }
+    
+    return render_template('match.html', result=result, update_available=True)
+
+@app.route('/update_rosters', methods=['POST'])
+def update_rosters():
+    """Update rosters and league table after a match"""
+    if 'last_match_result' not in session:
+        flash('No match result available to update', 'error')
+        return redirect(url_for('index'))
+    
+    match_result = session['last_match_result']
+    
+    try:
+        # Initialize updater
+        updater = get_updater(Config())
+        
+        # Update rosters if not a sample match
+        if not match_result.get('sample', False):
+            # Load the rosters
+            home_roster_path = match_result['home_roster_path']
+            away_roster_path = match_result['away_roster_path']
+            
+            with open(home_roster_path, 'r') as f:
+                home_roster_text = f.read()
+            with open(away_roster_path, 'r') as f:
+                away_roster_text = f.read()
+            
+            home_roster = Roster.parse(home_roster_text)
+            away_roster = Roster.parse(away_roster_text)
+            
+            # Create the result object that updater needs
+            result_for_updater = {
+                'home_team_obj': home_roster.to_team(None),  # No teamsheet needed for update
+                'away_team_obj': away_roster.to_team(None),
+                'home_score': match_result['home_score'],
+                'away_score': match_result['away_score'],
+                'home_team': match_result['home_team'],
+                'away_team': match_result['away_team'],
+                'events': []  # Simplified - would normally have event data
+            }
+            
+            # Update rosters
+            updates = updater.update_rosters(result_for_updater)
+            
+            # Update league table if it exists
+            if os.path.exists('league/table.txt'):
+                updater.update_league_table('league/table.txt', 'reports.txt')
+            
+            flash('Rosters and league table updated successfully', 'success')
+        
+        # Clear the session
+        session.pop('last_match_result', None)
+        
+        return redirect(url_for('league_table'))
+    
+    except Exception as e:
+        flash(f'Error updating rosters: {str(e)}', 'error')
+        return redirect(url_for('index'))
+
+@app.route('/league_table')
+def league_table():
+    """Display the league table"""
+    table_data = []
+    
+    try:
+        if os.path.exists('league/table.txt'):
+            with open('league/table.txt', 'r') as f:
+                lines = f.readlines()
+            
+            # Parse the table
+            for line in lines[2:]:  # Skip header
+                if line.strip():
+                    parts = line.strip().split()
+                    if len(parts) >= 10:
+                        table_data.append({
+                            'position': parts[0],
+                            'team': parts[1],
+                            'played': parts[2],
+                            'won': parts[3],
+                            'drawn': parts[4],
+                            'lost': parts[5],
+                            'goals_for': parts[6],
+                            'goals_against': parts[7],
+                            'goal_diff': parts[8],
+                            'points': parts[9]
+                        })
+    except Exception as e:
+        flash(f'Error loading league table: {str(e)}', 'error')
+    
+    return render_template('league_table.html', table=table_data, teams=league_teams)
+
+@app.route('/create_league', methods=['GET', 'POST'])
+def create_league():
+    """Create a new league"""
+    if request.method == 'POST':
+        team_names = request.form.get('team_names', '').strip().split('\n')
+        team_names = [name.strip() for name in team_names if name.strip()]
+        
+        if len(team_names) < 2:
+            flash('You need at least 2 teams to create a league', 'error')
+            return redirect(url_for('create_league'))
+        
+        try:
+            # Save the teams
+            global league_teams
+            league_teams = team_names
+            save_league_teams()
+            
+            # Create empty table
+            with open('league/table.txt', 'w') as f:
+                f.write("Pos  Team                    P    W   D   L    GF   GA   GD   Pts\n")
+                f.write("-----------------------------------------------------------------\n")
+                
+                # Write each team with zeros
+                for i, team in enumerate(team_names):
+                    f.write(f"{i+1:<4} {team:<22} 0    0   0   0    0    0    0    0\n")
+            
+            # Create fixtures
+            fixtures = generate_fixtures(team_names)
+            with open('league/fixtures.txt', 'w') as f:
+                for week, matches in enumerate(fixtures):
+                    f.write(f"Week {week+1}:\n")
+                    for match in matches:
+                        f.write(f"{match[0]} - {match[1]}\n")
+                    f.write("\n")
+            
+            flash('League created successfully', 'success')
+            return redirect(url_for('league_table'))
+        
+        except Exception as e:
+            flash(f'Error creating league: {str(e)}', 'error')
+            return redirect(url_for('create_league'))
+    
+    return render_template('create_league.html')
+
+def generate_fixtures(teams):
+    """Generate a round-robin fixture list"""
+    # If odd number of teams, add a dummy team
+    if len(teams) % 2 != 0:
+        teams = teams + ['BYE']
+    
+    n = len(teams)
+    fixtures = []
+    
+    # Generate first round
+    matches = []
+    for i in range(n // 2):
+        matches.append((teams[i], teams[n - 1 - i]))
+    fixtures.append(matches)
+    
+    # Generate remaining rounds
+    for round in range(1, n - 1):
+        matches = []
+        teams_round = [teams[0]] + [teams[i] for i in range(1, n)]
+        teams_round = [teams_round[-1]] + teams_round[:-1]  # Rotate
+        
+        for i in range(n // 2):
+            matches.append((teams_round[i], teams_round[n - 1 - i]))
+        
+        fixtures.append(matches)
+        teams = teams_round
+    
+    return fixtures
+
+@app.route('/view_fixtures')
+def view_fixtures():
+    """View league fixtures"""
+    fixtures = []
+    
+    try:
+        if os.path.exists('league/fixtures.txt'):
+            with open('league/fixtures.txt', 'r') as f:
+                content = f.read()
+            
+            # Parse fixtures
+            current_week = None
+            current_matches = []
+            
+            for line in content.split('\n'):
+                line = line.strip()
+                if not line:
+                    if current_week and current_matches:
+                        fixtures.append({
+                            'week': current_week,
+                            'matches': current_matches
+                        })
+                        current_matches = []
+                elif line.startswith('Week'):
+                    current_week = line
+                elif ' - ' in line:
+                    current_matches.append(line)
+            
+            # Add the last week if needed
+            if current_week and current_matches:
+                fixtures.append({
+                    'week': current_week,
+                    'matches': current_matches
+                })
+    
+    except Exception as e:
+        flash(f'Error loading fixtures: {str(e)}', 'error')
+    
+    return render_template('fixtures.html', fixtures=fixtures)
+
+@app.route('/team_management')
+def team_management():
+    """Team management page"""
+    teams = []
+    
+    # List all roster files
+    for filename in os.listdir():
+        if filename.endswith('.txt') and not filename.endswith('sht.txt'):
+            # Skip known non-roster files
+            if filename not in ['requirements.txt', 'table.txt', 'reports.txt', 'teams.txt']:
+                teams.append(filename)
+    
+    # Also check updated_rosters directory
+    if os.path.exists('updated_rosters'):
+        for filename in os.listdir('updated_rosters'):
+            if filename.endswith('.txt'):
+                teams.append(f"updated_rosters/{filename}")
+    
+    return render_template('team_management.html', teams=teams)
+
+@app.route('/view_team/<path:team_file>')
+def view_team(team_file):
+    """View a team's roster"""
+    team_data = {
+        'name': team_file,
+        'players': []
+    }
+    
+    try:
+        with open(team_file, 'r') as f:
+            lines = f.readlines()
+        
+        # Find team name from comment line
+        for line in lines:
+            if line.strip().startswith('//') and 'team:' in line:
+                team_data['name'] = line.split('team:')[1].strip()
+                break
+        
+        # Parse players (skip header lines)
+        for line in lines[2:]:
+            if line.strip() and not line.startswith('//') and not all(c == '-' for c in line):
+                parts = line.strip().split()
+                if len(parts) >= 21:
+                    player = {
+                        'name': parts[0],
+                        'age': parts[1],
+                        'nationality': parts[2],
+                        'preferred_side': parts[3],
+                        'st': parts[4],
+                        'tk': parts[5],
+                        'ps': parts[6],
+                        'sh': parts[7],
+                        'stamina': parts[8],
+                        'aggression': parts[9],
+                        'games': parts[14],
+                        'goals': parts[19],
+                        'assists': parts[20],
+                        'dp': parts[21],
+                        'injury': parts[22],
+                        'suspension': parts[23],
+                        'fitness': parts[24]
+                    }
+                    team_data['players'].append(player)
+    
+    except Exception as e:
+        flash(f'Error loading team data: {str(e)}', 'error')
+    
+    return render_template('view_team.html', team=team_data)
+
+if __name__ == '__main__':
+    app.run(debug=True)

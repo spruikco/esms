@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ESMS Match Simulator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>ESMS Match Simulator</h1>
+        <p>Upload team files to simulate a soccer match using the ESMS engine.</p>
+        
+        <form action="/simulate" method="post" enctype="multipart/form-data">
+            <div class="team-section">
+                <h2>Home Team</h2>
+                <div class="form-group">
+                    <label for="home_teamsheet">Teamsheet:</label>
+                    <input type="file" name="home_teamsheet" id="home_teamsheet" required>
+                    <small>Upload the home team's teamsheet file</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="home_roster">Roster:</label>
+                    <input type="file" name="home_roster" id="home_roster" required>
+                    <small>Upload the home team's roster file</small>
+                </div>
+            </div>
+            
+            <div class="team-section">
+                <h2>Away Team</h2>
+                <div class="form-group">
+                    <label for="away_teamsheet">Teamsheet:</label>
+                    <input type="file" name="away_teamsheet" id="away_teamsheet" required>
+                    <small>Upload the away team's teamsheet file</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="away_roster">Roster:</label>
+                    <input type="file" name="away_roster" id="away_roster" required>
+                    <small>Upload the away team's roster file</small>
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn">Simulate Match</button>
+            </div>
+        </form>
+        
+        <div class="sample-section">
+            <h2>Don't have team files?</h2>
+            <p>Try a sample match with pre-loaded teams.</p>
+            <a href="/sample" class="btn sample-btn">Run Sample Match</a>
+        </div>
+    </div>
+</body>
+</html>

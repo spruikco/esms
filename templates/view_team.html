@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Team Details | ESMS League Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .back-link {
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+        
+        .team-header {
+            background-color: #3498db;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .team-actions {
+            display: flex;
+        }
+        
+        .team-actions a {
+            margin-left: 10px;
+        }
+        
+        .player-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .player-table th, 
+        .player-table td {
+            padding: 12px 15px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .player-table th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .player-table td:first-child,
+        .player-table th:first-child {
+            text-align: left;
+        }
+        
+        .player-table tr:nth-child(even) {
+            background-color: #f5f5f5;
+        }
+        
+        .player-table tr:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .status-ok {
+            background-color: #2ecc71;
+        }
+        
+        .status-warning {
+            background-color: #f39c12;
+        }
+        
+        .status-danger {
+            background-color: #e74c3c;
+        }
+        
+        .player-tabs {
+            margin-top: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .player-tabs button {
+            padding: 10px 15px;
+            margin-right: 5px;
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            outline: none;
+        }
+        
+        .player-tabs button.active {
+            border-bottom: 2px solid #3498db;
+            color: #3498db;
+            font-weight: bold;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 20px 0;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @media print {
+            .back-link, .team-actions {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="{{ url_for('team_management') }}" class="back-link">&larr; Back to Team Management</a>
+        
+        <div class="team-header">
+            <h1>{{ team.name }}</h1>
+            <div class="team-actions">
+                <a href="#" class="btn" onclick="window.print()">Print Roster</a>
+                <a href="#" class="btn">Create Teamsheet</a>
+            </div>
+        </div>
+        
+        <div class="player-tabs">
+            <button class="tab-button active" data-tab="all-players">All Players</button>
+            <button class="tab-button" data-tab="by-position">By Position</button>
+            <button class="tab-button" data-tab="stats">Statistics</button>
+        </div>
+        
+        <div id="all-players" class="tab-content active">
+            <table class="player-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Age</th>
+                        <th>Nat</th>
+                        <th>Side</th>
+                        <th>St</th>
+                        <th>Tk</th>
+                        <th>Ps</th>
+                        <th>Sh</th>
+                        <th>Stamina</th>
+                        <th>Status</th>
+                        <th>Fitness</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player in team.players %}
+                        <tr>
+                            <td>{{ player.name }}</td>
+                            <td>{{ player.age }}</td>
+                            <td>{{ player.nationality }}</td>
+                            <td>{{ player.preferred_side }}</td>
+                            <td>{{ player.st }}</td>
+                            <td>{{ player.tk }}</td>
+                            <td>{{ player.ps }}</td>
+                            <td>{{ player.sh }}</td>
+                            <td>{{ player.stamina }}</td>
+                            <td>
+                                {% if player.injury|int > 0 %}
+                                    <span class="status-indicator status-danger"></span> Injured ({{ player.injury }} weeks)
+                                {% elif player.suspension|int > 0 %}
+                                    <span class="status-indicator status-danger"></span> Suspended ({{ player.suspension }} games)
+                                {% elif player.fitness|int < 80 %}
+                                    <span class="status-indicator status-warning"></span> Tired
+                                {% else %}
+                                    <span class="status-indicator status-ok"></span> Available
+                                {% endif %}
+                            </td>
+                            <td>{{ player.fitness }}%</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div id="by-position" class="tab-content">
+            <h2>Goalkeepers</h2>
+            <table class="player-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Age</th>
+                        <th>St</th>
+                        <th>Tk</th>
+                        <th>Ps</th>
+                        <th>Sh</th>
+                        <th>Status</th>
+                        <th>Fitness</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player in team.players %}
+                        {% if player.st|int >= 10 %}
+                            <tr>
+                                <td>{{ player.name }}</td>
+                                <td>{{ player.age }}</td>
+                                <td><strong>{{ player.st }}</strong></td>
+                                <td>{{ player.tk }}</td>
+                                <td>{{ player.ps }}</td>
+                                <td>{{ player.sh }}</td>
+                                <td>
+                                    {% if player.injury|int > 0 %}
+                                        <span class="status-indicator status-danger"></span> Injured
+                                    {% elif player.suspension|int > 0 %}
+                                        <span class="status-indicator status-danger"></span> Suspended
+                                    {% elif player.fitness|int < 80 %}
+                                        <span class="status-indicator status-warning"></span> Tired
+                                    {% else %}
+                                        <span class="status-indicator status-ok"></span> Available
+                                    {% endif %}
+                                </td>
+                                <td>{{ player.fitness }}%</td>
+                            </tr>
+                        {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <h2>Defenders</h2>
+            <table class="player-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Age</th>
+                        <th>Side</th>
+                        <th>Tk</th>
+                        <th>Ps</th>
+                        <th>Sh</th>
+                        <th>Status</th>
+                        <th>Fitness</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player in team.players %}
+                        {% if player.tk|int > player.ps|int and player.tk|int > player.sh|int and player.st|int < 10 %}
+                            <tr>
+                                <td>{{ player.name }}</td>
+                                <td>{{ player.age }}</td>
+                                <td>{{ player.preferred_side }}</td>
+                                <td><strong>{{ player.tk }}</strong></td>
+                                <td>{{ player.ps }}</td>
+                                <td>{{ player.sh }}</td>
+                                <td>
+                                    {% if player.injury|int > 0 %}
+                                        <span class="status-indicator status-danger"></span> Injured
+                                    {% elif player.suspension|int > 0 %}
+                                        <span class="status-indicator status-danger"></span> Suspended
+                                    {% elif player.fitness|int < 80 %}
+                                        <span class="status-indicator status-warning"></span> Tired
+                                    {% else %}
+                                        <span class="status-indicator status-ok"></span> Available
+                                    {% endif %}
+                                </td>
+                                <td>{{ player.fitness }}%</td>
+                            </tr>
+                        {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <h2>Midfielders</h2>
+            <table class="player-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Age</th>
+                        <th>Side</th>
+                        <th>Tk</th>
+                        <th>Ps</th>
+                        <th>Sh</th>
+                        <th>Status</th>
+                        <th>Fitness</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player in team.players %}
+                        {% if player.ps|int >= player.tk|int and player.ps|int >= player.sh|int and player.st|int < 10 %}
+                            <tr>
+                                <td>{{ player.name }}</td>
+                                <td>{{ player.age }}</td>
+                                <td>{{ player.preferred_side }}</td>
+                                <td>{{ player.tk }}</td>
+                                <td><strong>{{ player.ps }}</strong></td>
+                                <td>{{ player.sh }}</td>
+                                <td>
+                                    {% if player.injury|int > 0 %}
+                                        <span class="status-indicator status-danger"></span> Injured
+                                    {% elif player.suspension|int > 0 %}
+                                        <span class="status-indicator status-danger"></span> Suspended
+                                    {% elif player.fitness|int < 80 %}
+                                        <span class="status-indicator status-warning"></span> Tired
+                                    {% else %}
+                                        <span class="status-indicator status-ok"></span> Available
+                                    {% endif %}
+                                </td>
+                                <td>{{ player.fitness }}%</td>
+                            </tr>
+                        {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <h2>Forwards</h2>
+            <table class="player-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Age</th>
+                        <th>Side</th>
+                        <th>Tk</th>
+                        <th>Ps</th>
+                        <th>Sh</th>
+                        <th>Status</th>
+                        <th>Fitness</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player in team.players %}
+                        {% if player.sh|int > player.ps|int and player.sh|int > player.tk|int and player.st|int < 10 %}
+                            <tr>
+                                <td>{{ player.name }}</td>
+                                <td>{{ player.age }}</td>
+                                <td>{{ player.preferred_side }}</td>
+                                <td>{{ player.tk }}</td>
+                                <td>{{ player.ps }}</td>
+                                <td><strong>{{ player.sh }}</strong></td>
+                                <td>
+                                    {% if player.injury|int > 0 %}
+                                        <span class="status-indicator status-danger"></span> Injured
+                                    {% elif player.suspension|int > 0 %}
+                                        <span class="status-indicator status-danger"></span> Suspended
+                                    {% elif player.fitness|int < 80 %}
+                                        <span class="status-indicator status-warning"></span> Tired
+                                    {% else %}
+                                        <span class="status-indicator status-ok"></span> Available
+                                    {% endif %}
+                                </td>
+                                <td>{{ player.fitness }}%</td>
+                            </tr>
+                        {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div id="stats" class="tab-content">
+            <table class="player-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Games</th>
+                        <th>Goals</th>
+                        <th>Assists</th>
+                        <th>Shots</th>
+                        <th>Saves</th>
+                        <th>Key Tackles</th>
+                        <th>Key Passes</th>
+                        <th>DP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player in team.players %}
+                        <tr>
+                            <td>{{ player.name }}</td>
+                            <td>{{ player.games }}</td>
+                            <td>{{ player.goals }}</td>
+                            <td>{{ player.assists }}</td>
+                            <td>{{ player.shots }}</td>
+                            <td>{{ player.saves }}</td>
+                            <td>{{ player.ktk }}</td>
+                            <td>{{ player.kps }}</td>
+                            <td>{{ player.dp }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        // Tab switching functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabs = document.querySelectorAll('.tab-button');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // Remove active class from all tabs
+                    tabs.forEach(t => t.classList.remove('active'));
+                    
+                    // Add active class to clicked tab
+                    this.classList.add('active');
+                    
+                    // Hide all tab content
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    
+                    // Show corresponding tab content
+                    const tabId = this.getAttribute('data-tab');
+                    document.getElementById(tabId).classList.add('active');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,639 @@
+"""
+Updater module for ESMS Python.
+Handles updating of rosters, player injuries/suspensions, and league tables.
+Similar to the original updtr tool in the C++ version.
+"""
+import os
+import random
+import datetime
+from .commentary import commentary_manager
+
+class Updater:
+    """
+    Handles post-match updates: player statistics, injuries,
+    suspensions, and league tables.
+    """
+    
+    def __init__(self, config=None):
+        self.config = config or {}
+        
+        # Default configurations
+        self.dp_for_yellow = self.config.get('DP_FOR_YELLOW', 3)
+        self.dp_for_red = self.config.get('DP_FOR_RED', 10)
+        self.suspension_margin = self.config.get('SUSPENSION_MARGIN', 10)
+        self.max_injury_length = self.config.get('MAX_INJURY_LENGTH', 5)
+        self.fitness_gain = self.config.get('UPDTR_FITNESS_GAIN', 10)
+        self.fitness_after_injury = self.config.get('UPDTR_FITNESS_AFTER_INJURY', 80)
+        
+        # Initialize reports
+        self.summary = []
+    
+    def update_rosters(self, match_result, write_files=True, base_directory="."):
+        """
+        Update rosters based on match results
+        
+        Args:
+            match_result: Dictionary containing match outcome and player stats
+            write_files: Whether to write updated roster files
+            base_directory: Base directory for roster files
+        
+        Returns:
+            Dictionary with update summary
+        """
+        self.summary = []
+        updates = {
+            'skill_increases': [],
+            'skill_decreases': [],
+            'injuries': [],
+            'suspensions': [],
+            'fitness_changes': []
+        }
+        
+        # Track both teams from the match
+        home_team = match_result['home_team_obj'] 
+        away_team = match_result['away_team_obj']
+        
+        # Process all events from the match
+        for event in match_result['events']:
+            self._process_event(event, updates)
+        
+        # Handle injuries and suspensions
+        self._handle_injuries_and_suspensions(home_team, updates)
+        self._handle_injuries_and_suspensions(away_team, updates)
+        
+        # Update fitness for all players
+        self._update_fitness(home_team, updates)
+        self._update_fitness(away_team, updates)
+        
+        # Write updated rosters if requested
+        if write_files:
+            updated_rosters_dir = os.path.join(base_directory, "updated_rosters")
+            os.makedirs(updated_rosters_dir, exist_ok=True)
+            
+            self._write_roster(home_team, os.path.join(updated_rosters_dir, f"{home_team.name.lower()}.txt"))
+            self._write_roster(away_team, os.path.join(updated_rosters_dir, f"{away_team.name.lower()}.txt"))
+        
+        # Generate summary report
+        summary_report = self._generate_summary_report(match_result, updates)
+        self._write_summary_report(summary_report, base_directory)
+        
+        return updates
+    
+    def _process_event(self, event, updates):
+        """Process a match event for roster updates"""
+        if not hasattr(event, 'event_type'):
+            return
+            
+        event_type = event.event_type
+        
+        # Skip events without a team or player
+        if not hasattr(event, 'team') or not hasattr(event, 'player'):
+            return
+            
+        team = event.team
+        player = event.player
+        
+        if event_type == "goal":
+            # Update player's goals
+            player.goals += 1
+            
+            # Check for ability increase
+            player.sab += random.randint(20, 30)  # Boost shooting ability
+            
+            # Check if ability crosses threshold for skill increase
+            if player.sab >= 1000:
+                player.sab -= 1000
+                player.sh += 1
+                updates['skill_increases'].append({
+                    'player_name': player.name,
+                    'team_name': team.name,
+                    'skill': 'Shooting',
+                    'new_value': player.sh
+                })
+                
+                # Add to summary
+                self.summary.append(f"{player.name} ({team.name}) Shooting increases to {player.sh}")
+                
+        elif event_type == "assist" or hasattr(event, 'assisting_player'):
+            # Handle assist
+            assister = event.assisting_player
+            if assister:
+                assister.assists += 1
+                assister.pab += random.randint(15, 25)  # Boost passing ability
+                
+                # Check for skill increase
+                if assister.pab >= 1000:
+                    assister.pab -= 1000
+                    assister.ps += 1
+                    updates['skill_increases'].append({
+                        'player_name': assister.name,
+                        'team_name': team.name,
+                        'skill': 'Passing',
+                        'new_value': assister.ps
+                    })
+                    
+                    # Add to summary
+                    self.summary.append(f"{assister.name} ({team.name}) Passing increases to {assister.ps}")
+        
+        elif event_type == "tackle":
+            # Update key tackles
+            player.ktk += 1
+            
+            # Boost tackling ability
+            player.tab += random.randint(15, 25)
+            
+            # Check for skill increase
+            if player.tab >= 1000:
+                player.tab -= 1000
+                player.tk += 1
+                updates['skill_increases'].append({
+                    'player_name': player.name,
+                    'team_name': team.name,
+                    'skill': 'Tackling',
+                    'new_value': player.tk
+                })
+                
+                # Add to summary
+                self.summary.append(f"{player.name} ({team.name}) Tackling increases to {player.tk}")
+        
+        elif event_type == "save":
+            # Update saves for goalkeepers
+            player.saves += 1
+            
+            # Boost shot stopping ability
+            player.kab += random.randint(15, 25)
+            
+            # Check for skill increase
+            if player.kab >= 1000:
+                player.kab -= 1000
+                player.st += 1
+                updates['skill_increases'].append({
+                    'player_name': player.name,
+                    'team_name': team.name,
+                    'skill': 'Shot stopping',
+                    'new_value': player.st
+                })
+                
+                # Add to summary
+                self.summary.append(f"{player.name} ({team.name}) Shot stopping increases to {player.st}")
+        
+        elif event_type == "shot":
+            # Update shots
+            player.shots += 1
+            
+            # Small boost to shooting ability
+            player.sab += random.randint(5, 10)
+        
+        elif event_type == "pass":
+            # Update key passes
+            player.kps += 1
+            
+            # Small boost to passing ability
+            player.pab += random.randint(5, 10)
+        
+        elif event_type == "yellow":
+            # Add disciplinary points for yellow card
+            player.dp += self.dp_for_yellow
+            
+            # Check for suspension
+            if player.dp >= self.suspension_margin and player.dp % self.suspension_margin == 0:
+                suspension_games = 1
+                player.suspension += suspension_games
+                updates['suspensions'].append({
+                    'player_name': player.name,
+                    'team_name': team.name,
+                    'games': suspension_games
+                })
+                
+                # Add to summary
+                self.summary.append(f"{player.name} ({team.name}) is suspended for {suspension_games} game(s)")
+        
+        elif event_type == "red":
+            # Add disciplinary points for red card
+            player.dp += self.dp_for_red
+            
+            # Automatic suspension for red card
+            suspension_games = 1
+            player.suspension += suspension_games
+            updates['suspensions'].append({
+                'player_name': player.name,
+                'team_name': team.name,
+                'games': suspension_games
+            })
+            
+            # Add to summary
+            self.summary.append(f"{player.name} ({team.name}) is suspended for {suspension_games} game(s)")
+        
+        # Update games played for all players who were in the match
+        if hasattr(player, 'in_game') and player.in_game and not player.subbed_out:
+            player.games += 1
+    
+    def _handle_injuries_and_suspensions(self, team, updates):
+        """Handle player injuries and suspensions updates"""
+        for player in team.players:
+            # Handle random injuries (small chance for players who played)
+            if hasattr(player, 'in_game') and player.in_game and not player.subbed_out:
+                if random.random() < 0.05:  # 5% injury chance
+                    injury_duration = random.randint(1, self.max_injury_length)
+                    player.injury = injury_duration
+                    updates['injuries'].append({
+                        'player_name': player.name,
+                        'team_name': team.name,
+                        'duration': injury_duration
+                    })
+                    
+                    # Add to summary
+                    injury_reason = self._get_random_injury_reason(injury_duration)
+                    self.summary.append(f"{player.name} ({team.name}) {injury_reason}")
+            
+            # Decrease existing injuries
+            elif player.injury > 0:
+                player.injury -= 1
+                
+                # If injury has ended, restore fitness
+                if player.injury == 0:
+                    player.fitness = self.fitness_after_injury
+                    self.summary.append(f"{player.name} ({team.name}) is coming back from injury")
+            
+            # Decrease suspensions
+            if player.suspension > 0:
+                player.suspension -= 1
+                
+                if player.suspension == 0:
+                    self.summary.append(f"{player.name} ({team.name}) is coming back from suspension")
+    
+    def _update_fitness(self, team, updates):
+        """Update player fitness levels"""
+        for player in team.players:
+            # Players who didn't play gain fitness
+            if not hasattr(player, 'in_game') or not player.in_game:
+                fitness_gain = self.fitness_gain + random.randint(-2, 2)  # Small random variation
+                player.fitness = min(100, player.fitness + fitness_gain)
+            
+            # Players who played may lose fitness
+            elif not player.subbed_out:
+                fitness_loss = random.randint(10, 15)  # Rough estimation
+                player.fitness = max(70, player.fitness - fitness_loss)
+            
+            updates['fitness_changes'].append({
+                'player_name': player.name,
+                'team_name': team.name,
+                'new_fitness': player.fitness
+            })
+    
+    def _write_roster(self, team, filename):
+        """Write updated roster to file"""
+        try:
+            # Create roster content
+            content = f"// team: {team.name}\n"
+            content += "Name         Age Nat Prs St Tk Ps Sh Sm Ag KAb TAb PAb SAb Gam Sav Ktk Kps Sht Gls Ass  DP Inj Sus Fit\n"
+            content += "------------------------------------------------------------------------------------------------------\n"
+            
+            # Add each player
+            for player in team.players:
+                content += f"{player.name.ljust(12)} {str(player.age).rjust(2)} {player.nationality} "
+                content += f"{player.preferred_side.ljust(3)} {str(player.st).rjust(2)} {str(player.tk).rjust(2)} "
+                content += f"{str(player.ps).rjust(2)} {str(player.sh).rjust(2)} {str(player.sm).rjust(2)} "
+                content += f"{str(player.ag).rjust(2)} {str(player.kab).rjust(3)} {str(player.tab).rjust(3)} "
+                content += f"{str(player.pab).rjust(3)} {str(player.sab).rjust(3)} {str(player.games).rjust(3)} "
+                content += f"{str(player.saves).rjust(3)} {str(player.ktk).rjust(3)} {str(player.kps).rjust(3)} "
+                content += f"{str(player.shots).rjust(3)} {str(player.goals).rjust(3)} {str(player.assists).rjust(3)} "
+                content += f"{str(player.dp).rjust(3)} {str(player.injury).rjust(3)} {str(player.suspension).rjust(3)} "
+                content += f"{str(player.fitness).rjust(3)}\n"
+            
+            # Write to file
+            with open(filename, 'w') as f:
+                f.write(content)
+                
+            return True
+        except Exception as e:
+            print(f"Error writing roster file {filename}: {str(e)}")
+            return False
+    
+    def _generate_summary_report(self, match_result, updates):
+        """Generate a summary report of the match and updates"""
+        home_team = match_result['home_team_obj']
+        away_team = match_result['away_team_obj']
+        home_score = match_result['home_score']
+        away_score = match_result['away_score']
+        
+        # Create the summary report
+        report = f"Match Summary: {home_team.name} {home_score} - {away_score} {away_team.name}\n"
+        report += f"Date: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"
+        
+        # Add key events
+        report += "Key Events:\n"
+        report += "-----------\n"
+        for event in match_result['events']:
+            if hasattr(event, 'event_type') and event.event_type in ['goal', 'red', 'injury']:
+                report += f"{event.minute}' - {event.text}\n"
+        
+        report += "\n"
+        
+        # Add player updates
+        report += "Player Updates:\n"
+        report += "--------------\n"
+        
+        # Add skill increases
+        if updates['skill_increases']:
+            report += "Skill increases:\n"
+            for increase in updates['skill_increases']:
+                report += f"- {increase['player_name']} ({increase['team_name']}) {increase['skill']} increases to {increase['new_value']}\n"
+            report += "\n"
+        
+        # Add suspensions
+        if updates['suspensions']:
+            report += "Suspensions:\n"
+            for suspension in updates['suspensions']:
+                report += f"- {suspension['player_name']} ({suspension['team_name']}) suspended for {suspension['games']} game(s)\n"
+            report += "\n"
+        
+        # Add injuries
+        if updates['injuries']:
+            report += "Injuries:\n"
+            for injury in updates['injuries']:
+                report += f"- {injury['player_name']} ({injury['team_name']}) injured for {injury['duration']} week(s)\n"
+            report += "\n"
+        
+        return report
+    
+    def _write_summary_report(self, report, base_directory):
+        """Write the summary report to file"""
+        try:
+            # Create directory if it doesn't exist
+            os.makedirs(os.path.join(base_directory, "reports"), exist_ok=True)
+            
+            # Write the report
+            with open(os.path.join(base_directory, "reports", "updtr_summary.txt"), 'w') as f:
+                f.write(report)
+                
+            return True
+        except Exception as e:
+            print(f"Error writing summary report: {str(e)}")
+            return False
+    
+    def _get_random_injury_reason(self, duration):
+        """Get a random injury reason based on duration"""
+        if duration == 1:
+            reasons = [
+                "is injured for one week with a bruised knee",
+                "is injured for one week with a bruised hand",
+                "is injured for one week with a gashed hip"
+            ]
+        elif duration <= 3:
+            reasons = [
+                f"is injured for {duration} weeks with a groin strain",
+                f"is injured for {duration} weeks with a sprained knee",
+                f"is injured for {duration} weeks with a sprained ankle"
+            ]
+        else:
+            reasons = [
+                f"is injured for {duration} weeks with a torn hamstring",
+                f"is injured for {duration} weeks with a broken arm",
+                f"is injured for {duration} weeks with a ruptured ligament"
+            ]
+        
+        return random.choice(reasons)
+    
+    def update_league_table(self, table_file, results_file, output_file=None):
+        """
+        Update the league table with new match results
+        
+        Args:
+            table_file: Path to the current league table file
+            results_file: Path to the match results file
+            output_file: Path to write the updated table (defaults to table_file)
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        if output_file is None:
+            output_file = table_file
+        
+        try:
+            # Create table if it doesn't exist
+            if not os.path.exists(table_file):
+                return self._create_new_table(results_file, output_file)
+            
+            # Read the existing table
+            table = self._read_table(table_file)
+            
+            # Read the results
+            results = self._read_results(results_file)
+            
+            # Update the table with new results
+            self._update_table_data(table, results)
+            
+            # Sort the table
+            self._sort_table(table)
+            
+            # Write the updated table
+            self._write_table(table, output_file)
+            
+            return True
+        except Exception as e:
+            print(f"Error updating league table: {str(e)}")
+            return False
+    
+    def _read_table(self, table_file):
+        """Read the current league table"""
+        table = []
+        
+        with open(table_file, 'r') as f:
+            lines = f.readlines()
+        
+        # Skip header (first 2 lines)
+        for line in lines[2:]:
+            if line.strip():
+                parts = line.strip().split()
+                if len(parts) >= 9:
+                    # Parse table row: position, team, P, W, D, L, GF, GA, GD, Pts
+                    team_data = {
+                        'position': int(parts[0]),
+                        'team': parts[1],
+                        'played': int(parts[2]),
+                        'won': int(parts[3]),
+                        'drawn': int(parts[4]),
+                        'lost': int(parts[5]),
+                        'goals_for': int(parts[6]),
+                        'goals_against': int(parts[7]),
+                        'goal_diff': int(parts[8]),
+                        'points': int(parts[9])
+                    }
+                    table.append(team_data)
+        
+        return table
+    
+    def _read_results(self, results_file):
+        """Read match results from the results file"""
+        results = []
+        
+        with open(results_file, 'r') as f:
+            lines = f.readlines()
+        
+        for line in lines:
+            if ':' in line:
+                parts = line.strip().split(':')
+                if len(parts) == 2:
+                    teams_part = parts[0].strip()
+                    score_part = parts[1].strip()
+                    
+                    # Parse teams
+                    if ' - ' in teams_part:
+                        home_team, away_team = teams_part.split(' - ')
+                        
+                        # Parse score
+                        if '-' in score_part:
+                            home_score, away_score = score_part.split('-')
+                            
+                            results.append({
+                                'home_team': home_team.strip(),
+                                'away_team': away_team.strip(),
+                                'home_score': int(home_score.strip()),
+                                'away_score': int(away_score.strip())
+                            })
+        
+        return results
+    
+    def _update_table_data(self, table, results):
+        """Update table data with new results"""
+        # Create a dictionary for easier access
+        table_dict = {entry['team']: entry for entry in table}
+        
+        # Process each result
+        for result in results:
+            home_team = result['home_team']
+            away_team = result['away_team']
+            home_score = result['home_score']
+            away_score = result['away_score']
+            
+            # Add teams to table if they don't exist
+            if home_team not in table_dict:
+                new_entry = {
+                    'position': 0,
+                    'team': home_team,
+                    'played': 0,
+                    'won': 0,
+                    'drawn': 0,
+                    'lost': 0,
+                    'goals_for': 0,
+                    'goals_against': 0,
+                    'goal_diff': 0,
+                    'points': 0
+                }
+                table.append(new_entry)
+                table_dict[home_team] = new_entry
+            
+            if away_team not in table_dict:
+                new_entry = {
+                    'position': 0,
+                    'team': away_team,
+                    'played': 0,
+                    'won': 0,
+                    'drawn': 0,
+                    'lost': 0,
+                    'goals_for': 0,
+                    'goals_against': 0,
+                    'goal_diff': 0,
+                    'points': 0
+                }
+                table.append(new_entry)
+                table_dict[away_team] = new_entry
+            
+            # Update home team stats
+            table_dict[home_team]['played'] += 1
+            table_dict[home_team]['goals_for'] += home_score
+            table_dict[home_team]['goals_against'] += away_score
+            
+            # Update away team stats
+            table_dict[away_team]['played'] += 1
+            table_dict[away_team]['goals_for'] += away_score
+            table_dict[away_team]['goals_against'] += home_score
+            
+            # Update win/draw/loss and points
+            if home_score > away_score:
+                # Home win
+                table_dict[home_team]['won'] += 1
+                table_dict[home_team]['points'] += 3
+                table_dict[away_team]['lost'] += 1
+            elif home_score < away_score:
+                # Away win
+                table_dict[away_team]['won'] += 1
+                table_dict[away_team]['points'] += 3
+                table_dict[home_team]['lost'] += 1
+            else:
+                # Draw
+                table_dict[home_team]['drawn'] += 1
+                table_dict[home_team]['points'] += 1
+                table_dict[away_team]['drawn'] += 1
+                table_dict[away_team]['points'] += 1
+        
+        # Recalculate goal differences
+        for entry in table:
+            entry['goal_diff'] = entry['goals_for'] - entry['goals_against']
+    
+    def _sort_table(self, table):
+        """Sort the league table by points, goal difference, and goals scored"""
+        table.sort(key=lambda x: (-x['points'], -x['goal_diff'], -x['goals_for']))
+        
+        # Update positions
+        for i, entry in enumerate(table):
+            entry['position'] = i + 1
+    
+    def _write_table(self, table, output_file):
+        """Write the updated table to file"""
+        with open(output_file, 'w') as f:
+            # Write header
+            f.write("Pos  Team                    P    W   D   L    GF   GA   GD   Pts\n")
+            f.write("-----------------------------------------------------------------\n")
+            
+            # Write each team
+            for entry in table:
+                team_name = entry['team']
+                f.write(f"{entry['position']:<4} {team_name:<22} {entry['played']:<4} {entry['won']:<3} ")
+                f.write(f"{entry['drawn']:<3} {entry['lost']:<3} {entry['goals_for']:<5} ")
+                f.write(f"{entry['goals_against']:<5} {entry['goal_diff']:<5} {entry['points']:<4}\n")
+    
+    def _create_new_table(self, results_file, output_file):
+        """Create a new league table from scratch"""
+        # Read all teams from results
+        table = []
+        
+        # Read the results
+        results = self._read_results(results_file)
+        
+        # Create empty table entries for all teams
+        teams = set()
+        for result in results:
+            teams.add(result['home_team'])
+            teams.add(result['away_team'])
+        
+        for team in teams:
+            table.append({
+                'position': 0,
+                'team': team,
+                'played': 0,
+                'won': 0,
+                'drawn': 0,
+                'lost': 0,
+                'goals_for': 0,
+                'goals_against': 0,
+                'goal_diff': 0,
+                'points': 0
+            })
+        
+        # Update with results
+        self._update_table_data(table, results)
+        
+        # Sort the table
+        self._sort_table(table)
+        
+        # Write the table
+        self._write_table(table, output_file)
+        
+        return True
+
+# Create a function to get a singleton instance
+def get_updater(config=None):
+    """Get an instance of the Updater class"""
+    return Updater(config)

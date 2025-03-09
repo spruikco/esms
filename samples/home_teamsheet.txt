@@ -1,0 +1,29 @@
+red
+P
+
+GK T_Johnson
+DFL L_Smith
+DFC C_Wilson
+DFC D_Martinez
+DFR S_Brown
+MFL J_Thomas
+MFC M_Taylor
+MFR R_Garcia
+AMC P_Anderson
+FWL A_Harris
+FWR K_White
+
+GK G_Hall
+DFC V_Baker
+MFC N_Thompson
+DFL B_Martin
+AMC E_Young
+FWR B_Martin
+FWL E_Young
+
+PK: K_White
+
+TACTIC A IF MIN >= 65, SCORE < 0
+SUB M_Taylor N_Thompson MFC IF MIN = 70
+SUB L_Smith V_Baker DFL IF MIN = 70
+SUB K_White E_Young FWR IF MIN = 75, SCORE < 0

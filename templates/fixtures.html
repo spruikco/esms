@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>League Fixtures | ESMS League Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .back-link {
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+        
+        .fixtures-container {
+            margin-top: 20px;
+        }
+        
+        .week-card {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .week-header {
+            background-color: #3498db;
+            color: white;
+            padding: 12px 15px;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        
+        .matches-container {
+            padding: 15px;
+        }
+        
+        .match-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .match-row:last-child {
+            border-bottom: none;
+        }
+        
+        .team-name {
+            flex: 1;
+            max-width: 45%;
+        }
+        
+        .home-team {
+            text-align: right;
+            font-weight: bold;
+        }
+        
+        .away-team {
+            text-align: left;
+            font-weight: bold;
+        }
+        
+        .vs-indicator {
+            margin: 0 15px;
+            color: #777;
+            font-size: 0.9em;
+        }
+        
+        .no-fixtures {
+            text-align: center;
+            padding: 30px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        @media print {
+            .back-link, .actions {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="{{ url_for('index') }}" class="back-link">&larr; Back to Menu</a>
+        
+        <h1>League Fixtures</h1>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        
+        {% if fixtures %}
+            <div class="fixtures-container">
+                {% for fixture in fixtures %}
+                    <div class="week-card">
+                        <div class="week-header">
+                            {{ fixture.week }}
+                        </div>
+                        <div class="matches-container">
+                            {% for match in fixture.matches %}
+                                <div class="match-row">
+                                    {% if ' - ' in match %}
+                                        {% set teams = match.split(' - ') %}
+                                        <div class="team-name home-team">{{ teams[0] }}</div>
+                                        <div class="vs-indicator">vs</div>
+                                        <div class="team-name away-team">{{ teams[1] }}</div>
+                                    {% else %}
+                                        <div class="match-text">{{ match }}</div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <div class="actions">
+                <a href="{{ url_for('league_table') }}" class="btn">View League Table</a>
+                <a href="#" class="btn" onclick="window.print()">Print Fixtures</a>
+            </div>
+        {% else %}
+            <div class="no-fixtures">
+                <p>No fixtures available. Please create a league first.</p>
+                <a href="{{ url_for('create_league') }}" class="btn">Create League</a>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

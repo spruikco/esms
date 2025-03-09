@@ -1,0 +1,33 @@
+| A scoring chance
+| 1st %s - game minute
+| 2nd %s - team abbrevation
+| 3rd %s - player name
+
+[CHANCE] {\nMin. %s :(%s) %s with the dribble}
+[CHANCE] {\nMin. %s :(%s) %s takes possesion}
+[CHANCE] {\nMin. %s :(%s) %s cuts through the defense}
+[CHANCE] {\nMin. %s :(%s) %s finds a hole in the defense}
+
+| A shot to goal
+| 1st %s - player name
+
+[SHOT] {\n          ...  A powerful shot by %s !}
+[SHOT] {\n          ...  %s tries to beat the keeper !}
+[SHOT] {\n          ...  %s with the strike !}
+
+| A goal was scored
+
+[GOAL] {\n          ...  GOAL !!}
+
+| A save (by the goalkeeper)
+| 1st %s - goalkeeper name
+
+[SAVE] {\n          ...  Saved by %s}
+[SAVE] {\n          ...  %s gathers it comfortably}
+[SAVE] {\n          ...  %s makes a comfortable save}
+
+| Various statistic and informational lines
+
+[COMM_KICKOFF]  {\n*************  KICK OFF  *****************}
+[COMM_HALFTIME] {\n*************  HALF TIME  ****************}
+[COMM_FULLTIME] {\n*************  FULL TIME  ****************}
