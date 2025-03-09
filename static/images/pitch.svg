@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="600" height="400" viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
+  <!-- Pitch background -->
+  <rect x="0" y="0" width="600" height="400" fill="#4a8520" />
+  
+  <!-- Field outline -->
+  <rect x="10" y="10" width="580" height="380" fill="none" stroke="white" stroke-width="2" />
+  
+  <!-- Center line -->
+  <line x1="300" y1="10" x2="300" y2="390" stroke="white" stroke-width="2" />
+  
+  <!-- Center circle -->
+  <circle cx="300" cy="200" r="40" fill="none" stroke="white" stroke-width="2" />
+  <circle cx="300" cy="200" r="2" fill="white" />
+  
+  <!-- Penalty areas -->
+  <!-- Left penalty area -->
+  <rect x="10" y="125" width="80" height="150" fill="none" stroke="white" stroke-width="2" />
+  
+  <!-- Right penalty area -->
+  <rect x="510" y="125" width="80" height="150" fill="none" stroke="white" stroke-width="2" />
+  
+  <!-- Goal areas -->
+  <!-- Left goal area -->
+  <rect x="10" y="160" width="30" height="80" fill="none" stroke="white" stroke-width="2" />
+  
+  <!-- Right goal area -->
+  <rect x="560" y="160" width="30" height="80" fill="none" stroke="white" stroke-width="2" />
+  
+  <!-- Corner arcs -->
+  <path d="M10,10 Q20,10 20,20" fill="none" stroke="white" stroke-width="2" />
+  <path d="M590,10 Q590,20 580,20" fill="none" stroke="white" stroke-width="2" />
+  <path d="M10,390 Q20,390 20,380" fill="none" stroke="white" stroke-width="2" />
+  <path d="M590,390 Q590,380 580,380" fill="none" stroke="white" stroke-width="2" />
+  
+  <!-- Penalty spots -->
+  <circle cx="60" cy="200" r="2" fill="white" />
+  <circle cx="540" cy="200" r="2" fill="white" />
+  
+  <!-- Penalty arcs -->
+  <path d="M 90,160 A 40,40 0 0 1 90,240" fill="none" stroke="white" stroke-width="2" />
+  <path d="M 510,160 A 40,40 0 0 0 510,240" fill="none" stroke="white" stroke-width="2" />
+  
+  <!-- Goals (optional) -->
+  <rect x="0" y="170" width="10" height="60" fill="none" stroke="white" stroke-width="2" />
+  <rect x="590" y="170" width="10" height="60" fill="none" stroke="white" stroke-width="2" />
+</svg>

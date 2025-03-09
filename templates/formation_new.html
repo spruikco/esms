@@ -1,0 +1,469 @@
+{% extends "base.html" %}
+
+{% block title %}Formation Editor - {{ team.name }}{% endblock %}
+
+{% block head %}
+<style>
+    /* Pitch styles */
+    #football-pitch {
+        background-image: url('/static/images/pitch.png');
+        background-size: 100% 100%;
+        width: 600px;
+        height: 400px;
+        position: relative;
+        margin: 0 auto;
+        border: 2px solid #666;
+    }
+    
+    /* Player token styles */
+    .player {
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: #e74c3c;
+        color: white;
+        text-align: center;
+        font-weight: bold;
+        line-height: 40px;
+        cursor: move;
+        z-index: 10;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+        user-select: none;
+    }
+    
+    .player.selected {
+        box-shadow: 0 0 0 3px #3498db;
+    }
+    
+    .player-details {
+        position: absolute;
+        bottom: -25px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: rgba(0,0,0,0.7);
+        color: white;
+        font-size: 10px;
+        padding: 2px 5px;
+        border-radius: 3px;
+        white-space: nowrap;
+        display: none;
+    }
+    
+    .player:hover .player-details {
+        display: block;
+    }
+    
+    .gk-player {
+        background-color: #f1c40f; /* Yellow for goalkeeper */
+    }
+    
+    .def-player {
+        background-color: #3498db; /* Blue for defenders */
+    }
+    
+    .mid-player {
+        background-color: #2ecc71; /* Green for midfielders */
+    }
+    
+    .fwd-player {
+        background-color: #e74c3c; /* Red for forwards */
+    }
+    
+    /* Formation selector */
+    .formation-controls {
+        margin: 20px 0;
+    }
+    
+    /* Player roster sidebar */
+    .player-roster {
+        height: 400px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    
+    .player-item {
+        padding: 8px 12px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+    }
+    
+    .player-item:hover {
+        background-color: #f5f5f5;
+    }
+    
+    .position-indicator {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border-radius: 8px;
+        margin-right: 8px;
+        vertical-align: middle;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-9">
+            <h1>Formation Editor <small class="text-muted">{{ team.name }}</small></h1>
+            
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-success" role="alert">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <div class="formation-controls">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="formation-select">Formation</label>
+                            <select id="formation-select" class="form-control">
+                                <option value="4-4-2" {% if team.formation == '4-4-2' %}selected{% endif %}>4-4-2</option>
+                                <option value="4-3-3" {% if team.formation == '4-3-3' %}selected{% endif %}>4-3-3</option>
+                                <option value="3-5-2" {% if team.formation == '3-5-2' %}selected{% endif %}>3-5-2</option>
+                                <option value="5-3-2" {% if team.formation == '5-3-2' %}selected{% endif %}>5-3-2</option>
+                                <option value="4-2-3-1" {% if team.formation == '4-2-3-1' %}selected{% endif %}>4-2-3-1</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="auto-position">Auto Position Players</label>
+                            <button id="auto-position" class="btn btn-primary form-control">Apply Formation</button>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="save-formation">Save Changes</label>
+                            <button id="save-formation" class="btn btn-success form-control">Save Formation</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="football-pitch">
+                <!-- Players will be added here dynamically -->
+            </div>
+            
+            <div class="alert alert-info mt-3">
+                <i class="fa fa-info-circle"></i> Drag players to position them on the field. Click "Auto Position" to automatically arrange players according to the selected formation.
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Team Players</h4>
+                </div>
+                <div class="card-body p-0">
+                    <div class="player-roster">
+                        <div class="list-group list-group-flush">
+                            {% for tp in team.players %}
+                                {% set player = tp.player %}
+                                {% set position = tp.position %}
+                                {% set position_class = 'fwd-player' %}
+                                {% if position == 'GK' %}
+                                    {% set position_class = 'gk-player' %}
+                                {% elif position in ['CB', 'LB', 'RB', 'LWB', 'RWB'] %}
+                                    {% set position_class = 'def-player' %}
+                                {% elif position in ['CM', 'DM', 'AM', 'LM', 'RM'] %}
+                                    {% set position_class = 'mid-player' %}
+                                {% endif %}
+                                <div class="player-item" data-player-id="{{ player.id }}" data-position="{{ position }}" data-assigned="false">
+                                    <span class="position-indicator {{ position_class }}"></span>
+                                    <strong>{{ position }}:</strong> {{ player.name }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <a href="{{ url_for('team_detail', team_id=team.id) }}" class="btn btn-secondary">Back to Team</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Team and pitch information
+    const teamId = {{ team.id }};
+    const pitch = document.getElementById('football-pitch');
+    const pitchWidth = pitch.offsetWidth;
+    const pitchHeight = pitch.offsetHeight;
+    let playerPositions = [];
+    
+    // Formation templates - x, y values as percentage of pitch dimensions
+    const formations = {
+        '4-4-2': [
+            { position: 'GK', x: 0.06, y: 0.5 },
+            { position: 'LB', x: 0.2, y: 0.2 },
+            { position: 'CB', x: 0.2, y: 0.4 },
+            { position: 'CB', x: 0.2, y: 0.6 },
+            { position: 'RB', x: 0.2, y: 0.8 },
+            { position: 'LM', x: 0.4, y: 0.2 },
+            { position: 'CM', x: 0.4, y: 0.4 },
+            { position: 'CM', x: 0.4, y: 0.6 },
+            { position: 'RM', x: 0.4, y: 0.8 },
+            { position: 'ST', x: 0.6, y: 0.4 },
+            { position: 'ST', x: 0.6, y: 0.6 }
+        ],
+        '4-3-3': [
+            { position: 'GK', x: 0.06, y: 0.5 },
+            { position: 'LB', x: 0.2, y: 0.2 },
+            { position: 'CB', x: 0.2, y: 0.4 },
+            { position: 'CB', x: 0.2, y: 0.6 },
+            { position: 'RB', x: 0.2, y: 0.8 },
+            { position: 'CM', x: 0.4, y: 0.3 },
+            { position: 'CM', x: 0.4, y: 0.5 },
+            { position: 'CM', x: 0.4, y: 0.7 },
+            { position: 'LW', x: 0.6, y: 0.2 },
+            { position: 'ST', x: 0.6, y: 0.5 },
+            { position: 'RW', x: 0.6, y: 0.8 }
+        ],
+        '3-5-2': [
+            { position: 'GK', x: 0.06, y: 0.5 },
+            { position: 'CB', x: 0.2, y: 0.3 },
+            { position: 'CB', x: 0.2, y: 0.5 },
+            { position: 'CB', x: 0.2, y: 0.7 },
+            { position: 'LWB', x: 0.35, y: 0.1 },
+            { position: 'CM', x: 0.4, y: 0.3 },
+            { position: 'CM', x: 0.4, y: 0.5 },
+            { position: 'CM', x: 0.4, y: 0.7 },
+            { position: 'RWB', x: 0.35, y: 0.9 },
+            { position: 'ST', x: 0.6, y: 0.4 },
+            { position: 'ST', x: 0.6, y: 0.6 }
+        ],
+        '5-3-2': [
+            { position: 'GK', x: 0.06, y: 0.5 },
+            { position: 'LWB', x: 0.2, y: 0.1 },
+            { position: 'CB', x: 0.2, y: 0.3 },
+            { position: 'CB', x: 0.2, y: 0.5 },
+            { position: 'CB', x: 0.2, y: 0.7 },
+            { position: 'RWB', x: 0.2, y: 0.9 },
+            { position: 'CM', x: 0.4, y: 0.3 },
+            { position: 'CM', x: 0.4, y: 0.5 },
+            { position: 'CM', x: 0.4, y: 0.7 },
+            { position: 'ST', x: 0.6, y: 0.4 },
+            { position: 'ST', x: 0.6, y: 0.6 }
+        ],
+        '4-2-3-1': [
+            { position: 'GK', x: 0.06, y: 0.5 },
+            { position: 'LB', x: 0.2, y: 0.2 },
+            { position: 'CB', x: 0.2, y: 0.4 },
+            { position: 'CB', x: 0.2, y: 0.6 },
+            { position: 'RB', x: 0.2, y: 0.8 },
+            { position: 'DM', x: 0.35, y: 0.35 },
+            { position: 'DM', x: 0.35, y: 0.65 },
+            { position: 'LW', x: 0.5, y: 0.2 },
+            { position: 'AM', x: 0.5, y: 0.5 },
+            { position: 'RW', x: 0.5, y: 0.8 },
+            { position: 'ST', x: 0.65, y: 0.5 }
+        ]
+    };
+    
+    // Load team data
+    function loadTeamData() {
+        fetch(`/api/formation/${teamId}`)
+            .then(response => response.json())
+            .then(data => {
+                // Store current formation
+                const currentFormation = data.formation;
+                document.getElementById('formation-select').value = currentFormation;
+                
+                // Clear any existing players
+                pitch.innerHTML = '';
+                playerPositions = [];
+                
+                // Reset player roster
+                document.querySelectorAll('.player-item').forEach(item => {
+                    item.setAttribute('data-assigned', 'false');
+                });
+                
+                // Add players to the pitch
+                data.players.forEach(player => {
+                    // Find position class
+                    let positionClass = 'fwd-player';
+                    if (player.position === 'GK') {
+                        positionClass = 'gk-player';
+                    } else if (['CB', 'LB', 'RB', 'LWB', 'RWB'].includes(player.position)) {
+                        positionClass = 'def-player';
+                    } else if (['CM', 'DM', 'AM', 'LM', 'RM'].includes(player.position)) {
+                        positionClass = 'mid-player';
+                    }
+                    
+                    // Create player element
+                    const playerElement = document.createElement('div');
+                    playerElement.className = `player ${positionClass}`;
+                    playerElement.id = `player-${player.id}`;
+                    playerElement.setAttribute('data-player-id', player.id);
+                    playerElement.setAttribute('data-position', player.position);
+                    
+                    // Set position
+                    if (player.x !== null && player.y !== null) {
+                        playerElement.style.left = `${player.x}px`;
+                        playerElement.style.top = `${player.y}px`;
+                    } else {
+                        // Default position if not set
+                        playerElement.style.left = '50px';
+                        playerElement.style.top = '50px';
+                    }
+                    
+                    // Add player number/position
+                    playerElement.innerText = player.position;
+                    
+                    // Add player details tooltip
+                    const detailsElement = document.createElement('div');
+                    detailsElement.className = 'player-details';
+                    detailsElement.innerText = player.name;
+                    playerElement.appendChild(detailsElement);
+                    
+                    // Add to pitch
+                    pitch.appendChild(playerElement);
+                    
+                    // Mark as assigned in player roster
+                    const rosterItem = document.querySelector(`.player-item[data-player-id="${player.id}"]`);
+                    if (rosterItem) {
+                        rosterItem.setAttribute('data-assigned', 'true');
+                    }
+                    
+                    // Store position for saving
+                    playerPositions.push({
+                        id: player.id,
+                        position: player.position,
+                        x: parseFloat(playerElement.style.left),
+                        y: parseFloat(playerElement.style.top)
+                    });
+                });
+                
+                // Make players draggable
+                makePlayersDraggable();
+            })
+            .catch(error => {
+                console.error('Error loading team data:', error);
+                alert('Failed to load team data. Please try again.');
+            });
+    }
+    
+    // Make players draggable
+    function makePlayersDraggable() {
+        $('.player').draggable({
+            containment: '#football-pitch',
+            cursor: 'move',
+            start: function(event, ui) {
+                // Add selected class
+                $(this).addClass('selected');
+            },
+            drag: function(event, ui) {
+                // Update position in our data
+                const playerId = $(this).data('player-id');
+                const playerPos = playerPositions.find(p => p.id === playerId);
+                if (playerPos) {
+                    playerPos.x = ui.position.left;
+                    playerPos.y = ui.position.top;
+                }
+            },
+            stop: function(event, ui) {
+                // Remove selected class
+                $(this).removeClass('selected');
+            }
+        });
+    }
+    
+    // Auto position players based on selected formation
+    function autoPositionPlayers() {
+        const formationName = document.getElementById('formation-select').value;
+        const formationTemplate = formations[formationName];
+        
+        if (!formationTemplate) {
+            console.error('Formation not found:', formationName);
+            return;
+        }
+        
+        // Get players on the pitch
+        const players = Array.from(document.querySelectorAll('.player'));
+        
+        // For each position in the formation template
+        formationTemplate.forEach(slot => {
+            // Find a player with this position
+            const player = players.find(p => 
+                p.getAttribute('data-position') === slot.position
+            );
+            
+            if (player) {
+                // Calculate position
+                const xPos = slot.x * pitchWidth;
+                const yPos = slot.y * pitchHeight;
+                
+                // Apply position
+                player.style.left = `${xPos}px`;
+                player.style.top = `${yPos}px`;
+                
+                // Update in our data array
+                const playerId = parseInt(player.getAttribute('data-player-id'));
+                const playerPos = playerPositions.find(p => p.id === playerId);
+                if (playerPos) {
+                    playerPos.x = xPos;
+                    playerPos.y = yPos;
+                }
+            }
+        });
+    }
+    
+    // Save formation
+    function saveFormation() {
+        // Get current formation
+        const formationName = document.getElementById('formation-select').value;
+        
+        // Prepare data for server
+        const formationData = {
+            formation: formationName,
+            players: playerPositions
+        };
+        
+        // Send to server
+        fetch(`/api/formation/${teamId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formationData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                alert('Formation saved successfully!');
+            } else {
+                alert('Failed to save formation. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error saving formation:', error);
+            alert('Failed to save formation. Please try again.');
+        });
+    }
+    
+    // Event listeners
+    document.getElementById('auto-position').addEventListener('click', autoPositionPlayers);
+    document.getElementById('save-formation').addEventListener('click', saveFormation);
+    
+    // Load team data on page load
+    loadTeamData();
+});
+</script>
+{% endblock %}

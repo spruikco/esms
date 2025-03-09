@@ -30,7 +30,7 @@
                             <th>Nationality:</th>
                             <td>
                                 {% if player.nationality %}
-                                    <span class="flag-icon">{{ get_flag_emoji(player.nationality) }}</span> 
+                                    <span class="flag-icon flag-icon-{{ get_country_code(player.nationality) }}"></span> 
                                     {{ player.nationality }}
                                 {% else %}
                                     Unknown
@@ -246,11 +246,6 @@
     align-items: center;
     justify-content: center;
     margin: 0 auto;
-}
-
-.flag-icon {
-    font-size: 1.2em;
-    margin-right: 5px;
 }
 
 .attribute-container {

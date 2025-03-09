@@ -26,6 +26,9 @@
                     <thead>
                         <tr>
                             <th>Name</th>
+                            <th>Position</th>
+                            <th>Age</th>
+                            <th>Nationality</th>
                             <th>Attributes</th>
                             <th>Teams</th>
                             <th>Actions</th>
@@ -35,6 +38,16 @@
                         {% for player in players %}
                         <tr>
                             <td>{{ player.name }}</td>
+                            <td>{{ player.primary_position }}</td>
+                            <td>{{ player.age }}</td>
+                            <td>
+                                {% if player.nationality %}
+                                    <span class="flag-icon flag-icon-{{ get_country_code(player.nationality) }}"></span>
+                                    {{ player.nationality }}
+                                {% else %}
+                                    <span class="text-muted">Unknown</span>
+                                {% endif %}
+                            </td>
                             <td>
                                 <div class="row">
                                     <div class="col-md-6">
@@ -88,8 +101,8 @@
                             </td>
                             <td>
                                 <div class="btn-group">
-                                    <a href="#" class="btn btn-sm btn-info">View</a>
-                                    <a href="#" class="btn btn-sm btn-warning">Edit</a>
+                                    <a href="{{ url_for('player_detail', player_id=player.id) }}" class="btn btn-sm btn-info">View</a>
+                                    <a href="{{ url_for('player_edit', player_id=player.id) }}" class="btn btn-sm btn-warning">Edit</a>
                                 </div>
                             </td>
                         </tr>

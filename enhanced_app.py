@@ -1,4 +1,3 @@
-# enhanced_app.py
 from flask import Flask, request, render_template, redirect, url_for, flash, jsonify
 import os
 import shutil
@@ -27,7 +26,7 @@ from models import User, Team, Player, TeamPlayer, Match, MatchEvent, Tactic
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs('samples', exist_ok=True)
 
-# Import ESMS modules (keep existing imports)
+# Import ESMS modules
 from esms.teamsheet import Teamsheet
 from esms.roster import Roster
 from esms.enhanced_match import EnhancedMatchEngine
@@ -35,8 +34,9 @@ from esms.config import Config
 from esms.tactics import tact_manager
 from esms.commentary import commentary_manager
 
-def get_flag_emoji(country_name):
-    """Convert country name to emoji flag"""
+# Helper function to convert country names to CSS flag codes
+def get_country_code(country_name):
+    """Convert country name to its 2-letter ISO code"""
     try:
         # Try to find the country by name
         country = pycountry.countries.get(name=country_name)
@@ -46,16 +46,26 @@ def get_flag_emoji(country_name):
                 if hasattr(c, 'common_name') and c.common_name == country_name:
                     country = c
                     break
+            
+            # Try partial matches if still not found
+            if not country:
+                matches = [c for c in pycountry.countries if country_name in c.name]
+                if matches:
+                    country = matches[0]
         
         if country:
-            # Convert country code to emoji flag
-            code = country.alpha_2
-            return ''.join(chr(ord(c) + 127397) for c in code)
-    except:
-        pass
+            # Return lowercase ISO code for flag-icon-css
+            return country.alpha_2.lower()
+    except Exception as e:
+        print(f"Error finding country code for {country_name}: {str(e)}")
     
-    # Return a generic flag if country not found
-    return '🏳️'
+    # Return xx as placeholder for unknown
+    return 'xx'
+
+# Add context processor for template functions
+@app.context_processor
+def utility_processor():
+    return dict(get_country_code=get_country_code)
 
 # Copy sample files to the right location if needed
 def ensure_sample_files():
@@ -128,7 +138,9 @@ def team_from_db(team_db):
 # ROUTES
 @app.route('/')
 def index():
-    return render_template('index.html')
+    # Get recent matches for display
+    recent_matches = Match.query.filter_by(completed=True).order_by(Match.scheduled_time.desc()).limit(5).all()
+    return render_template('index.html', matches=recent_matches)
 
 @app.route('/simulate', methods=['POST'])
 def simulate():
@@ -270,6 +282,7 @@ def team_edit(team_id):
     if request.method == 'POST':
         team.name = request.form.get('name')
         team.tactic = request.form.get('tactic')
+        team.formation = request.form.get('formation')
         db.session.commit()
         
         flash('Team updated successfully!')
@@ -286,15 +299,11 @@ def team_formation(team_id):
         team.formation = request.form.get('formation')
         db.session.commit()
         
-        # Process player positions
-        # (This would come from the formation editor)
-        
         flash('Formation updated successfully!')
         return redirect(url_for('team_detail', team_id=team.id))
     
     return render_template('formation.html', team=team)
 
-# Enhanced versions of the API routes for formations
 @app.route('/api/formation/<int:team_id>', methods=['GET'])
 def api_get_formation(team_id):
     """API endpoint to get team formation data"""
@@ -447,6 +456,12 @@ def players():
     """View all players"""
     all_players = Player.query.all()
     return render_template('players.html', players=all_players)
+
+@app.route('/player/<int:player_id>')
+def player_detail(player_id):
+    """View player details"""
+    player = Player.query.get_or_404(player_id)
+    return render_template('player_detail.html', player=player)
 
 @app.route('/player/new', methods=['GET', 'POST'])
 def player_new():
@@ -602,6 +617,13 @@ def match_detail(match_id):
     match = Match.query.get_or_404(match_id)
     return render_template('match_detail.html', match=match)
 
+# Add this new route to enhanced_app.py
+@app.route('/team/<int:team_id>/formation_new', methods=['GET'])
+def team_formation_new(team_id):
+    """Enhanced interactive formation editor"""
+    team = Team.query.get_or_404(team_id)
+    return render_template('formation_new.html', team=team)
+
 @app.route('/run_match/<int:match_id>')
 def run_match(match_id):
     """Run a match simulation"""
@@ -654,18 +676,6 @@ def run_match(match_id):
     except Exception as e:
         error_message = f"An error occurred: {str(e)}"
         return render_template('error.html', error=error_message)
-
-# Add this context processor to make flag emoji function available in templates
-@app.context_processor
-def utility_processor():
-    return dict(get_flag_emoji=get_flag_emoji)
-
-# Add this route for player details
-@app.route('/player/<int:player_id>')
-def player_detail(player_id):
-    """View player details"""
-    player = Player.query.get_or_404(player_id)
-    return render_template('player_detail.html', player=player)
 
 @app.route('/lineup/<int:match_id>', methods=['GET', 'POST'])
 def submit_lineup(match_id):
