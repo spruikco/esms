@@ -9,7 +9,7 @@
         <h1>ESMS Match Simulator</h1>
         <p>Upload team files to simulate a soccer match using the ESMS engine.</p>
         
-        <form action="/simulate" method="post" enctype="multipart/form-data">
+        <form action="{{ url_for('simulate') }}" method="post" enctype="multipart/form-data">
             <div class="team-section">
                 <h2>Home Team</h2>
                 <div class="form-group">

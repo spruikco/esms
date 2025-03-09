@@ -1,62 +1,90 @@
+# esms/team.py
 class Team:
-    def __init__(self, name, players=None):
+    """
+    Represents a match-ready team with players and tactics
+    """
+    def __init__(self, name, tactic='N'):
         self.name = name
-        self.players = players or []
-        self.tactic = "N"  # Default normal tactic
-        self.lineup = []  # Players on the field
-        self.subs = []    # Substitutes
-        self.pk_taker = None
-        
-    def add_player(self, player):
-        self.players.append(player)
-        
-    def set_tactic(self, tactic):
         self.tactic = tactic
+        self.players = []
         
-    def set_lineup(self, positions_dict):
-        """Set player positions based on a dictionary mapping positions to player names"""
-        self.lineup = []
-        for position, player_name in positions_dict.items():
-            player = self.get_player_by_name(player_name)
-            if player:
-                player.position = position
-                player.in_game = True
-                self.lineup.append(player)
+        # Tactical modifiers (set by match engine)
+        self.temp_attacking_boost = 0
+        self.temp_defensive_boost = 0
+        self.temp_attacking_penalty = 0
+        self.temp_defensive_penalty = 0
+        self.temp_counter_bonus = 0
+        self.temp_passing_boost = 0
     
-    def set_subs(self, subs_list):
-        """Set substitutes based on a list of (position, player_name) tuples"""
-        self.subs = []
-        for position, player_name in subs_list:
-            player = self.get_player_by_name(player_name)
-            if player:
-                player.position = position
-                player.in_game = False
-                self.subs.append(player)
-    
-    def get_player_by_name(self, name):
-        """Find a player by name"""
-        for player in self.players:
-            if player.name == name:
-                return player
-        return None
+    def add_player(self, player):
+        """Add a player to the team"""
+        self.players.append(player)
     
     def get_goalkeeper(self):
         """Get the team's goalkeeper"""
-        for player in self.lineup:
-            if player.position.startswith("GK"):
+        for player in self.players:
+            if player.position == 'GK':
                 return player
         return None
     
     def get_defenders(self):
-        """Get all defenders in the lineup"""
-        return [p for p in self.lineup if p.position.startswith("DF")]
+        """Get the team's defenders"""
+        return [p for p in self.players if p.position in ['CB', 'LB', 'RB', 'LWB', 'RWB']]
     
     def get_midfielders(self):
-        """Get all midfielders in the lineup"""
-        return [p for p in self.lineup if p.position.startswith("MF") or 
-                                           p.position.startswith("DM") or 
-                                           p.position.startswith("AM")]
+        """Get the team's midfielders"""
+        return [p for p in self.players if p.position in ['CM', 'DM', 'AM', 'LM', 'RM']]
     
     def get_forwards(self):
-        """Get all forwards in the lineup"""
-        return [p for p in self.lineup if p.position.startswith("FW")]
+        """Get the team's forwards"""
+        return [p for p in self.players if p.position in ['ST', 'CF', 'LF', 'RF', 'LW', 'RW']]
+    
+    def get_attack_strength(self):
+        """Calculate team's overall attacking strength"""
+        if not self.players:
+            return 10
+        
+        forwards = self.get_forwards()
+        midfielders = self.get_midfielders()
+        
+        # Calculate base attack from forwards and midfielders
+        forward_contribution = sum(p.get_effective_attribute('shooting') for p in forwards) if forwards else 0
+        mid_contribution = sum(p.get_effective_attribute('passing') for p in midfielders) if midfielders else 0
+        
+        if not forwards and not midfielders:
+            return 10
+        
+        # Weight forwards more heavily in attack calculation
+        total = (forward_contribution * 0.7 + mid_contribution * 0.3) / (len(forwards) * 0.7 + len(midfielders) * 0.3)
+        
+        # Apply tactical modifiers
+        total += self.temp_attacking_boost
+        total -= self.temp_attacking_penalty
+        
+        return max(1, min(20, total))
+    
+    def get_defense_strength(self):
+        """Calculate team's overall defensive strength"""
+        if not self.players:
+            return 10
+            
+        defenders = self.get_defenders()
+        midfielders = self.get_midfielders()
+        goalkeeper = self.get_goalkeeper()
+        
+        # Calculate base defense from defenders, midfielders and goalkeeper
+        def_contribution = sum(p.get_effective_attribute('tackling') for p in defenders) if defenders else 0
+        mid_contribution = sum(p.get_effective_attribute('tackling') for p in midfielders) if midfielders else 0
+        gk_contribution = goalkeeper.get_effective_attribute('goalkeeper') if goalkeeper else 10
+        
+        if not defenders and not midfielders:
+            return gk_contribution
+        
+        # Weight defenders more heavily in defense calculation
+        total = (def_contribution * 0.6 + mid_contribution * 0.2 + gk_contribution * 0.2) / (len(defenders) * 0.6 + len(midfielders) * 0.2 + 0.2)
+        
+        # Apply tactical modifiers
+        total += self.temp_defensive_boost
+        total -= self.temp_defensive_penalty
+        
+        return max(1, min(20, total))

@@ -1,0 +1,13 @@
+[Bayern Munich]
+[A]
+GK: Manuel Neuer
+LB: Alphonso Davies
+CB: Dayot Upamecano
+CB: Matthijs de Ligt
+RB: Benjamin Pavard
+DM: Joshua Kimmich
+CM: Leon Goretzka
+AM: Thomas Muller
+LW: Leroy Sane
+RW: Serge Gnabry
+ST: Sadio Mane

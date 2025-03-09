@@ -1,354 +1,166 @@
+<!-- templates/match.html -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Match Result | ESMS League Manager</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Match Result</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <style>
-        .back-link {
-            margin-bottom: 20px;
-            display: inline-block;
-        }
-        
-        .scoreboard {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin: 20px 0;
-            padding: 15px;
-            background-color: #2c3e50;
-            color: white;
-            border-radius: 5px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        
-        .scoreboard .team {
-            font-size: 1.2em;
-            font-weight: bold;
-        }
-        
-        .scoreboard .score {
-            font-size: 2.5em;
-            font-weight: bold;
-            margin: 0 20px;
-        }
-        
-        .match-tabs {
-            margin: 20px 0;
-            border-bottom: 2px solid #f0f0f0;
-        }
-        
-        .match-tabs button {
-            padding: 10px 15px;
-            margin-right: 5px;
-            background: none;
-            border: none;
-            font-size: 16px;
-            cursor: pointer;
-            outline: none;
-        }
-        
-        .match-tabs button.active {
-            border-bottom: 2px solid #3498db;
-            color: #3498db;
-            font-weight: bold;
-        }
-        
-        .tab-content {
-            display: none;
-            padding: 20px 0;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        
-        .commentary {
-            max-height: 500px;
-            overflow-y: auto;
-            border: 1px solid #e0e0e0;
-            border-radius: 5px;
-            padding: 15px;
-            margin-bottom: 20px;
-            background-color: #f9f9f9;
-        }
-        
-        .event {
-            margin-bottom: 8px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        
-        .event:last-child {
-            border-bottom: none;
-        }
-        
-        .minute {
-            display: inline-block;
-            min-width: 40px;
-            font-weight: bold;
-            color: #7f8c8d;
-        }
-        
-        .update-section {
-            margin-top: 30px;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 5px;
-            border-left: 4px solid #3498db;
-        }
-        
-        .player-stats-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        
-        .player-stats-table th, 
-        .player-stats-table td {
-            padding: 8px 12px;
-            text-align: left;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        
-        .player-stats-table th {
-            background-color: #f5f5f5;
-            font-weight: bold;
-        }
-        
-        .player-stats-table tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        
-        .player-stats-table tr:hover {
-            background-color: #f0f0f0;
-        }
-        
-        .team-section-heading {
-            margin-top: 30px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #f0f0f0;
-            color: #3498db;
-        }
-    </style>
 </head>
 <body>
     <div class="container">
-        <a href="{{ url_for('index') }}" class="back-link">&larr; Back to Menu</a>
+        <header>
+            <h1>Match Result</h1>
+            <div class="score-container">
+                <div class="team home-team">
+                    <h2>{{ result.home_team.name }}</h2>
+                </div>
+                <div class="score">
+                    <span class="score-number">{{ result.home_score }}</span>
+                    <span class="score-divider">-</span>
+                    <span class="score-number">{{ result.away_score }}</span>
+                </div>
+                <div class="team away-team">
+                    <h2>{{ result.away_team.name }}</h2>
+                </div>
+            </div>
+        </header>
         
-        <h1>Match Result</h1>
-        
-        <div class="scoreboard">
-            <div class="team home-team">{{ result.home_team }}</div>
-            <div class="score">{{ result.home_score }} - {{ result.away_score }}</div>
-            <div class="team away-team">{{ result.away_team }}</div>
+        <div class="match-stats">
+            <h2>Match Statistics</h2>
+            <div class="stat-row">
+                <div class="stat-label">Possession</div>
+                <div class="stat-bar">
+                    <div class="stat-home" style="width: {{ result.statistics.possession.home }}%;">{{ result.statistics.possession.home }}%</div>
+                    <div class="stat-away" style="width: {{ result.statistics.possession.away }}%;">{{ result.statistics.possession.away }}%</div>
+                </div>
+            </div>
+            <div class="stat-row">
+                <div class="stat-label">Shots</div>
+                <div class="stat-value home">{{ result.statistics.shots.home }}</div>
+                <div class="stat-value away">{{ result.statistics.shots.away }}</div>
+            </div>
+            <div class="stat-row">
+                <div class="stat-label">On Target</div>
+                <div class="stat-value home">{{ result.statistics.shots_on_target.home }}</div>
+                <div class="stat-value away">{{ result.statistics.shots_on_target.away }}</div>
+            </div>
+            <div class="stat-row">
+                <div class="stat-label">Fouls</div>
+                <div class="stat-value home">{{ result.statistics.fouls.home }}</div>
+                <div class="stat-value away">{{ result.statistics.fouls.away }}</div>
+            </div>
+            <div class="stat-row">
+                <div class="stat-label">Corners</div>
+                <div class="stat-value home">{{ result.statistics.corners.home }}</div>
+                <div class="stat-value away">{{ result.statistics.corners.away }}</div>
+            </div>
         </div>
         
-        <div class="match-tabs">
-            <button class="tab-button active" data-tab="commentary">Commentary</button>
-            <button class="tab-button" data-tab="statistics">Statistics</button>
-            <button class="tab-button" data-tab="player-stats">Player Stats</button>
-        </div>
-        
-        <div id="commentary" class="tab-content active">
-            <h2>Match Commentary</h2>
-            <div class="commentary">
+        <div class="match-events">
+            <h2>Match Events</h2>
+            <div class="timeline">
                 {% for event in result.events %}
-                <div class="event">
-                    <span class="minute">{{ event.minute }}'</span>
-                    <span class="text">{{ event.text }}</span>
+                <div class="event {{ event.type }}">
+                    <div class="event-time">{{ event.minute }}'</div>
+                    <div class="event-icon">
+                        {% if event.type == 'goal' %}⚽{% endif %}
+                        {% if event.type == 'yellow_card' %}🟨{% endif %}
+                        {% if event.type == 'red_card' %}🟥{% endif %}
+                        {% if event.type == 'save' %}🧤{% endif %}
+                        {% if event.type == 'miss' %}❌{% endif %}
+                        {% if event.type == 'foul' %}🥊{% endif %}
+                        {% if event.type == 'kickoff' %}🏁{% endif %}
+                        {% if event.type == 'halftime' %}⏱️{% endif %}
+                        {% if event.type == 'fulltime' %}🏁{% endif %}
+                    </div>
+                    <div class="event-desc">{{ event.description }}</div>
                 </div>
                 {% endfor %}
             </div>
         </div>
         
-        <div id="statistics" class="tab-content">
-            <h2>Match Statistics</h2>
-            <div class="statistics">
+        <div class="player-stats">
+            <h2>Player Ratings</h2>
+            
+            <div class="team-stats">
+                <h3>{{ result.home_team.name }}</h3>
                 <table>
-                    <tr>
-                        <th>{{ result.home_team }}</th>
-                        <th></th>
-                        <th>{{ result.away_team }}</th>
-                    </tr>
-                    <tr>
-                        <td>{{ result.events|selectattr('event_type', 'equalto', 'shot')|selectattr('team', 'equalto', result.home_team_obj)|list|length }}</td>
-                        <td>Shots</td>
-                        <td>{{ result.events|selectattr('event_type', 'equalto', 'shot')|selectattr('team', 'equalto', result.away_team_obj)|list|length }}</td>
-                    </tr>
-                    <tr>
-                        <td>{{ result.events|selectattr('event_type', 'equalto', 'save')|selectattr('team', 'equalto', result.home_team_obj)|list|length }}</td>
-                        <td>Saves</td>
-                        <td>{{ result.events|selectattr('event_type', 'equalto', 'save')|selectattr('team', 'equalto', result.away_team_obj)|list|length }}</td>
-                    </tr>
-                    <tr>
-                        <td>{{ result.events|selectattr('event_type', 'equalto', 'yellow')|selectattr('team', 'equalto', result.home_team_obj)|list|length }}</td>
-                        <td>Yellow Cards</td>
-                        <td>{{ result.events|selectattr('event_type', 'equalto', 'yellow')|selectattr('team', 'equalto', result.away_team_obj)|list|length }}</td>
-                    </tr>
-                    <tr>
-                        <td>{{ result.events|selectattr('event_type', 'equalto', 'red')|selectattr('team', 'equalto', result.home_team_obj)|list|length }}</td>
-                        <td>Red Cards</td>
-                        <td>{{ result.events|selectattr('event_type', 'equalto', 'red')|selectattr('team', 'equalto', result.away_team_obj)|list|length }}</td>
-                    </tr>
-                    <tr>
-                        <td>{{ result.events|selectattr('event_type', 'equalto', 'pass')|selectattr('team', 'equalto', result.home_team_obj)|list|length }}</td>
-                        <td>Key Passes</td>
-                        <td>{{ result.events|selectattr('event_type', 'equalto', 'pass')|selectattr('team', 'equalto', result.away_team_obj)|list|length }}</td>
-                    </tr>
-                    <tr>
-                        <td>{{ result.events|selectattr('event_type', 'equalto', 'tackle')|selectattr('team', 'equalto', result.home_team_obj)|list|length }}</td>
-                        <td>Key Tackles</td>
-                        <td>{{ result.events|selectattr('event_type', 'equalto', 'tackle')|selectattr('team', 'equalto', result.away_team_obj)|list|length }}</td>
-                    </tr>
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            <th>Pos</th>
+                            <th>Rating</th>
+                            <th>Goals</th>
+                            <th>Assists</th>
+                            <th>Shots</th>
+                            <th>Passes</th>
+                            <th>Comp %</th>
+                            <th>Tackles</th>
+                            <th>Dist (km)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for player_name, stats in result.statistics.player_stats.home.items() %}
+                        <tr>
+                            <td>{{ player_name }}</td>
+                            <td>{{ stats.position }}</td>
+                            <td>{{ stats.rating }}</td>
+                            <td>{{ stats.goals }}</td>
+                            <td>{{ stats.assists }}</td>
+                            <td>{{ stats.shots }}</td>
+                            <td>{{ stats.passes }}</td>
+                            <td>{{ stats.pass_completion }}%</td>
+                            <td>{{ stats.tackles_won }}/{{ stats.tackles }}</td>
+                            <td>{{ stats.distance }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="team-stats">
+                <h3>{{ result.away_team.name }}</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            <th>Pos</th>
+                            <th>Rating</th>
+                            <th>Goals</th>
+                            <th>Assists</th>
+                            <th>Shots</th>
+                            <th>Passes</th>
+                            <th>Comp %</th>
+                            <th>Tackles</th>
+                            <th>Dist (km)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for player_name, stats in result.statistics.player_stats.away.items() %}
+                        <tr>
+                            <td>{{ player_name }}</td>
+                            <td>{{ stats.position }}</td>
+                            <td>{{ stats.rating }}</td>
+                            <td>{{ stats.goals }}</td>
+                            <td>{{ stats.assists }}</td>
+                            <td>{{ stats.shots }}</td>
+                            <td>{{ stats.passes }}</td>
+                            <td>{{ stats.pass_completion }}%</td>
+                            <td>{{ stats.tackles_won }}/{{ stats.tackles }}</td>
+                            <td>{{ stats.distance }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
                 </table>
             </div>
         </div>
         
-        <div id="player-stats" class="tab-content">
-            <h2>Player Statistics</h2>
-            
-            <!-- Home Team Players -->
-            <h3 class="team-section-heading">{{ result.home_team }}</h3>
-            <table class="player-stats-table">
-                <thead>
-                    <tr>
-                        <th>Player</th>
-                        <th>Position</th>
-                        <th>Goals</th>
-                        <th>Assists</th>
-                        <th>Shots</th>
-                        <th>Saves</th>
-                        <th>Cards</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for player in result.home_team_obj.lineup %}
-                    <tr>
-                        <td>{{ player.name }}</td>
-                        <td>{{ player.position }}</td>
-                        <td>{{ 
-                           result.events|selectattr('event_type', 'equalto', 'goal')
-                                        |selectattr('player', 'equalto', player)|list|length 
-                        }}</td>
-                        <td>{{ 
-                           result.events|selectattr('assisting_player', 'equalto', player)|list|length 
-                        }}</td>
-                        <td>{{ 
-                           result.events|selectattr('event_type', 'equalto', 'shot')
-                                        |selectattr('player', 'equalto', player)|list|length 
-                        }}</td>
-                        <td>{{ 
-                           result.events|selectattr('event_type', 'equalto', 'save')
-                                        |selectattr('player', 'equalto', player)|list|length 
-                        }}</td>
-                        <td>{{ 
-                           result.events|selectattr('event_type', 'equalto', 'yellow')
-                                        |selectattr('player', 'equalto', player)|list|length 
-                        }} Yellow, 
-                        {{ 
-                           result.events|selectattr('event_type', 'equalto', 'red')
-                                        |selectattr('player', 'equalto', player)|list|length 
-                        }} Red</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            
-            <!-- Away Team Players -->
-            <h3 class="team-section-heading">{{ result.away_team }}</h3>
-            <table class="player-stats-table">
-                <thead>
-                    <tr>
-                        <th>Player</th>
-                        <th>Position</th>
-                        <th>Goals</th>
-                        <th>Assists</th>
-                        <th>Shots</th>
-                        <th>Saves</th>
-                        <th>Cards</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for player in result.away_team_obj.lineup %}
-                    <tr>
-                        <td>{{ player.name }}</td>
-                        <td>{{ player.position }}</td>
-                        <td>{{ 
-                           result.events|selectattr('event_type', 'equalto', 'goal')
-                                        |selectattr('player', 'equalto', player)|list|length 
-                        }}</td>
-                        <td>{{ 
-                           result.events|selectattr('assisting_player', 'equalto', player)|list|length 
-                        }}</td>
-                        <td>{{ 
-                           result.events|selectattr('event_type', 'equalto', 'shot')
-                                        |selectattr('player', 'equalto', player)|list|length 
-                        }}</td>
-                        <td>{{ 
-                           result.events|selectattr('event_type', 'equalto', 'save')
-                                        |selectattr('player', 'equalto', player)|list|length 
-                        }}</td>
-                        <td>{{ 
-                           result.events|selectattr('event_type', 'equalto', 'yellow')
-                                        |selectattr('player', 'equalto', player)|list|length 
-                        }} Yellow, 
-                        {{ 
-                           result.events|selectattr('event_type', 'equalto', 'red')
-                                        |selectattr('player', 'equalto', player)|list|length 
-                        }} Red</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        
-        {% if update_available %}
-        <div class="update-section">
-            <h3>Update Rosters and League</h3>
-            <p>Would you like to update the team rosters and league table with this match result?</p>
-            <p>This will:</p>
-            <ul>
-                <li>Update player statistics in both team rosters</li>
-                <li>Process player injuries and suspensions</li>
-                <li>Update the league table with the match result</li>
-            </ul>
-            <form action="{{ url_for('update_rosters') }}" method="post">
-                <button type="submit" class="btn">Update Rosters & League</button>
-            </form>
-        </div>
-        {% endif %}
-        
-        <div class="actions">
-            <a href="{{ url_for('match_form') }}" class="btn">Simulate Another Match</a>
-            {% if update_available %}
-            <a href="{{ url_for('league_table') }}" class="btn">Go to League Table</a>
-            {% endif %}
+        <div class="navigation">
+            <a href="{{ url_for('index') }}" class="btn">New Match</a>
+            <!-- Add more navigation buttons here when you implement league tables, etc. -->
+            <!-- <a href="{{ url_for('league') }}" class="btn">League Table</a> -->
         </div>
     </div>
-    
-    <script>
-        // Tab switching functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            const tabs = document.querySelectorAll('.tab-button');
-            tabs.forEach(tab => {
-                tab.addEventListener('click', function() {
-                    // Remove active class from all tabs
-                    tabs.forEach(t => t.classList.remove('active'));
-                    
-                    // Add active class to clicked tab
-                    this.classList.add('active');
-                    
-                    // Hide all tab content
-                    document.querySelectorAll('.tab-content').forEach(content => {
-                        content.classList.remove('active');
-                    });
-                    
-                    // Show corresponding tab content
-                    const tabId = this.getAttribute('data-tab');
-                    document.getElementById(tabId).classList.add('active');
-                });
-            });
-        });
-    </script>
 </body>
 </html>

@@ -1,170 +1,184 @@
-"""
-Commentary generation module for ESMS Python.
-Based on the original ESMS language.dat file.
-"""
+# esms/commentary.py
 import random
-import re
+import os
 
-
-class CommentaryManager:
-    """
-    Handles commentary generation for match events.
-    Uses templates from the language.dat file.
-    """
-    
+class commentary_manager:
     _instance = None
     
     def __new__(cls):
         if cls._instance is None:
-            cls._instance = super(CommentaryManager, cls).__new__(cls)
-            cls._instance._initialized = False
+            cls._instance = super(commentary_manager, cls).__new__(cls)
+            cls._instance.initialized = False
         return cls._instance
     
-    def __init__(self):
-        if self._initialized:
+    def init(self, language_file):
+        """Initialize the commentary manager with templates from the language file"""
+        if self.initialized:
             return
             
-        # Initialize commentary templates
-        self.commentary_templates = {
-            'CHANCE': [],
-            'ASSISTEDCHANCE': [],
-            'TACKLE': [],
-            'SHOT': [],
-            'SAVE': [],
-            'OFFTARGET': [],
-            'GOAL': [],
-            'GOALCANCELLED': [],
-            'INJURY': [],
-            'CHANGEPOSITION': [],
-            'SUB': [],
-            'NOSUBSLEFT': [],
-            'CHANGETACTIC': [],
-            'FOUL': [],
-            'PENALTY': [],
-            'WARNED': [],
-            'YELLOWCARD': [],
-            'SECONDYELLOWCARD': [],
-            'REDCARD': [],
-            'COMM_KICKOFF': [],
-            'COMM_HALFTIME': [],
-            'COMM_FULLTIME': [],
-            'COMM_SHOTSOFFTARGET': [],
-            'COMM_SHOTSONTARGET': [],
-            'PENALTYSHOOTOUT': [],
-            'WONPENALTYSHOOTOUT': [],
-            'COMM_SCORE': [],
-            'COMM_INJURYTIME': [],
-            'COMM_STATISTICS': []
+        self.templates = {
+            'goal': [],
+            'goal_with_assist': [],
+            'save': [],
+            'miss': [],
+            'cross': [],
+            'failed_cross': [],
+            'through_ball': [],
+            'failed_through_ball': [],
+            'dribble': [],
+            'tackle': [],
+            'interception': [],
+            'pass': [],
+            'foul': [],
+            'yellow_card': [],
+            'red_card': [],
+            'early_game': [],
+            'late_game': [],
+            'equalizer': [],
+            'go_ahead': [],
+            'extend_lead': []
         }
         
-        self._initialized = True
+        self.load_templates(language_file)
+        self.initialized = True
     
-    def init(self, filename):
-        """Initialize commentary templates from the language.dat file"""
-        try:
-            with open(filename, 'r') as langfile:
-                lines = langfile.readlines()
-        except Exception as e:
-            raise Exception(f"Failed to open {filename}: {str(e)}")
+    def load_templates(self, language_file):
+        """Load commentary templates from file"""
+        if not os.path.exists(language_file):
+            print(f"Warning: Language file {language_file} not found.")
+            return
             
-        # Parse language file
-        current_key = None
-        
-        for line in lines:
-            line = line.strip()
-            if not line or line.startswith('|'):  # Skip empty lines and comments
-                continue
+        try:
+            current_section = None
+            with open(language_file, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith('#'):
+                        continue
+                        
+                    if line.startswith('[') and line.endswith(']'):
+                        current_section = line[1:-1]
+                        continue
+                        
+                    if current_section and current_section in self.templates:
+                        self.templates[current_section].append(line)
+        except Exception as e:
+            print(f"Error loading language file: {str(e)}")
+    
+    def get_template(self, category, context=None):
+        """Get a random template from the specified category, with optional context"""
+        if not self.initialized:
+            return f"Commentary not initialized."
+            
+        if category not in self.templates or not self.templates[category]:
+            return f"[{category}]"  # Default if no templates available
+            
+        # Select from appropriate templates based on context
+        if context and context in self.templates and self.templates[context]:
+            # 50% chance to use context-specific template if available
+            if random.random() < 0.5:
+                return random.choice(self.templates[context])
                 
-            # Check if this is a category definition line [CATEGORY]
-            match = re.match(r'\[(.*?)\]\s*\{(.*)\}', line)
-            if match:
-                category, template = match.groups()
-                if category in self.commentary_templates:
-                    # Remove the leading and trailing braces if present
-                    template = template.strip('{}')
-                    self.commentary_templates[category].append(template)
+        return random.choice(self.templates[category])
     
-    def get_text(self, category, *args):
-        """
-        Get a random commentary text of the given category,
-        formatted with the provided arguments.
-        """
-        if category not in self.commentary_templates:
-            return f"[Unknown commentary category: {category}]"
+    def get_goal(self, scorer, minute, home_score, away_score):
+        """Get goal commentary"""
+        # Determine context based on match situation
+        context = None
+        if minute < 15:
+            context = 'early_game'
+        elif minute > 75:
+            context = 'late_game'
             
-        templates = self.commentary_templates[category]
-        if not templates:
-            return f"[No templates available for: {category}]"
+        if home_score == away_score:
+            context = 'equalizer'
+        elif abs(home_score - away_score) == 1:
+            context = 'go_ahead'
+        elif abs(home_score - away_score) > 1:
+            context = 'extend_lead'
             
-        template = random.choice(templates)
-        
-        try:
-            # Format the template with the provided arguments
-            return template % args
-        except Exception as e:
-            return f"[Error formatting commentary: {str(e)}]"
+        template = self.get_template('goal', context)
+        return template.replace('{player}', scorer).replace('{minute}', str(minute))
     
-    def generate_chance(self, minute, team_abbr, player_name):
-        """Generate commentary for a scoring chance"""
-        return self.get_text('CHANCE', minute, team_abbr, player_name)
+    def get_goal_with_assist(self, scorer, assister, minute, home_score, away_score):
+        """Get goal with assist commentary"""
+        context = None
+        if minute < 15:
+            context = 'early_game'
+        elif minute > 75:
+            context = 'late_game'
+            
+        if home_score == away_score:
+            context = 'equalizer'
+        elif abs(home_score - away_score) == 1:
+            context = 'go_ahead'
+        elif abs(home_score - away_score) > 1:
+            context = 'extend_lead'
+            
+        template = self.get_template('goal_with_assist', context)
+        return template.replace('{player}', scorer).replace('{assist}', assister).replace('{minute}', str(minute))
     
-    def generate_assisted_chance(self, minute, team_abbr, assisting_player, receiving_player):
-        """Generate commentary for an assisted scoring chance"""
-        return self.get_text('ASSISTEDCHANCE', minute, team_abbr, assisting_player, receiving_player)
+    def get_save(self, goalkeeper, shooter):
+        """Get save commentary"""
+        template = self.get_template('save')
+        return template.replace('{goalkeeper}', goalkeeper).replace('{player}', shooter)
     
-    def generate_tackle(self, player_name):
-        """Generate commentary for a key tackle"""
-        return self.get_text('TACKLE', player_name)
+    def get_miss(self, shooter):
+        """Get miss commentary"""
+        template = self.get_template('miss')
+        return template.replace('{player}', shooter)
     
-    def generate_shot(self, player_name):
-        """Generate commentary for a shot"""
-        return self.get_text('SHOT', player_name)
+    def get_cross(self, crosser, target):
+        """Get cross commentary"""
+        template = self.get_template('cross')
+        return template.replace('{player}', crosser).replace('{target}', target)
     
-    def generate_save(self, goalkeeper_name):
-        """Generate commentary for a save"""
-        return self.get_text('SAVE', goalkeeper_name)
+    def get_failed_cross(self, crosser, defender):
+        """Get failed cross commentary"""
+        template = self.get_template('failed_cross')
+        return template.replace('{player}', crosser).replace('{defender}', defender)
     
-    def generate_offtarget(self):
-        """Generate commentary for a shot going off target"""
-        return self.get_text('OFFTARGET')
+    def get_through_ball(self, passer, receiver):
+        """Get through ball commentary"""
+        template = self.get_template('through_ball')
+        return template.replace('{player}', passer).replace('{target}', receiver)
     
-    def generate_goal(self):
-        """Generate commentary for a goal"""
-        return self.get_text('GOAL')
+    def get_failed_through_ball(self, passer, defender):
+        """Get failed through ball commentary"""
+        template = self.get_template('failed_through_ball')
+        return template.replace('{player}', passer).replace('{defender}', defender)
     
-    def generate_foul(self, minute, team_abbr, player_name):
-        """Generate commentary for a foul"""
-        return self.get_text('FOUL', minute, team_abbr, player_name)
+    def get_dribble(self, dribbler, defender):
+        """Get dribble commentary"""
+        template = self.get_template('dribble')
+        return template.replace('{player}', dribbler).replace('{defender}', defender)
     
-    def generate_yellow_card(self):
-        """Generate commentary for a yellow card"""
-        return self.get_text('YELLOWCARD')
+    def get_tackle(self, defender, attacker):
+        """Get tackle commentary"""
+        template = self.get_template('tackle')
+        return template.replace('{defender}', defender).replace('{player}', attacker)
     
-    def generate_red_card(self):
-        """Generate commentary for a red card"""
-        return self.get_text('REDCARD')
+    def get_interception(self, defender, passer):
+        """Get interception commentary"""
+        template = self.get_template('interception')
+        return template.replace('{defender}', defender).replace('{player}', passer)
     
-    def generate_kickoff(self):
-        """Generate commentary for kickoff"""
-        return self.get_text('COMM_KICKOFF')
+    def get_pass(self, passer, receiver):
+        """Get pass commentary"""
+        template = self.get_template('pass')
+        return template.replace('{player}', passer).replace('{target}', receiver)
     
-    def generate_halftime(self):
-        """Generate commentary for halftime"""
-        return self.get_text('COMM_HALFTIME')
+    def get_foul(self, fouler, fouled):
+        """Get foul commentary"""
+        template = self.get_template('foul')
+        return template.replace('{player}', fouler).replace('{victim}', fouled)
     
-    def generate_fulltime(self):
-        """Generate commentary for fulltime"""
-        return self.get_text('COMM_FULLTIME')
+    def get_yellow_card(self, carded, fouled):
+        """Get yellow card commentary"""
+        template = self.get_template('yellow_card')
+        return template.replace('{player}', carded).replace('{victim}', fouled)
     
-    def generate_substitution(self, minute, team_abbr, player_in, player_out, position):
-        """Generate commentary for a substitution"""
-        return self.get_text('SUB', minute, team_abbr, player_in, player_out, position)
-    
-    def generate_tactic_change(self, minute, team_abbr, team_name, new_tactic):
-        """Generate commentary for a tactic change"""
-        return self.get_text('CHANGETACTIC', minute, team_abbr, team_name, new_tactic)
-
-# Singleton instance
-def commentary_manager():
-    """Get the singleton instance of CommentaryManager"""
-    return CommentaryManager()
+    def get_red_card(self, carded, fouled):
+        """Get red card commentary"""
+        template = self.get_template('red_card')
+        return template.replace('{player}', carded).replace('{victim}', fouled)

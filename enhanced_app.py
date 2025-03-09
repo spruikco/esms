@@ -115,6 +115,11 @@ def simulate():
         error_message = f"An error occurred: {str(e)}"
         return render_template('error.html', error=error_message)
 
+@app.route('/league')
+def league():
+    """Placeholder for future league functionality"""
+    return render_template('index.html', message="League functionality coming soon!")
+
 @app.route('/sample')
 def sample():
     """Provide sample match for testing without file uploads"""

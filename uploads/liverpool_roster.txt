@@ -1,0 +1,19 @@
+[Liverpool FC]
+Alisson Becker, GK, 11, 12, 10, 14, 5, 5, 8, 18, 17
+Andrew Robertson, LB, 16, 16, 14, 15, 10, 14, 11, 5, 14
+Virgil van Dijk, CB, 13, 14, 12, 12, 9, 18, 17, 5, 17
+Ibrahima Konate, CB, 14, 15, 10, 10, 8, 16, 16, 5, 15
+Trent Alexander-Arnold, RB, 14, 13, 15, 17, 13, 12, 12, 5, 13
+Fabinho, DM, 12, 14, 13, 14, 10, 16, 14, 5, 16
+Thiago Alcantara, CM, 11, 12, 18, 18, 12, 11, 10, 5, 14
+Jordan Henderson, CM, 12, 16, 13, 15, 11, 14, 13, 5, 15
+Luis Diaz, LW, 17, 15, 16, 13, 15, 9, 11, 5, 13
+Mohamed Salah, RW, 17, 15, 17, 14, 17, 8, 12, 5, 14
+Darwin Nunez, ST, 16, 15, 13, 11, 16, 8, 15, 5, 13
+Diogo Jota, ST, 15, 14, 15, 12, 16, 9, 13, 5, 14
+Roberto Firmino, CF, 14, 14, 16, 15, 15, 11, 12, 5, 15
+Harvey Elliott, CM, 14, 13, 15, 14, 12, 10, 9, 5, 12
+James Milner, CM, 11, 15, 13, 14, 11, 13, 12, 5, 15
+Joe Gomez, CB, 15, 13, 11, 11, 7, 15, 14, 5, 14
+Kostas Tsimikas, LB, 14, 13, 13, 14, 9, 13, 11, 5, 13
+Caoimhin Kelleher, GK, 11, 10, 9, 12, 5, 5, 7, 15, 14

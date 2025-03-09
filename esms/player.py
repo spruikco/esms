@@ -1,92 +1,82 @@
+# esms/player.py
 class Player:
-    def __init__(self, name, age=25, nationality="UNK", preferred_side="C",
-                 st=1, tk=10, ps=10, sh=10, sm=50, ag=50,
-                 kab=100, tab=100, pab=100, sab=100,
-                 games=0, saves=0, ktk=0, kps=0, shots=0, goals=0, assists=0,
-                 dp=0, injury=0, suspension=0, fitness=100):
+    def __init__(self, name, position, attributes):
         self.name = name
-        self.age = age
-        self.nationality = nationality
-        self.preferred_side = preferred_side
+        self.position = position
+        self.attributes = attributes
         
-        # Skills
-        self.st = st  # Shot stopping (GK)
-        self.tk = tk  # Tackling
-        self.ps = ps  # Passing
-        self.sh = sh  # Shooting
-        self.sm = sm  # Stamina
-        self.ag = ag  # Aggression
+        # Base attributes (read from roster)
+        self.speed = attributes.get('speed', 10)
+        self.stamina = attributes.get('stamina', 10)
+        self.technique = attributes.get('technique', 10)
+        self.passing = attributes.get('passing', 10)
+        self.shooting = attributes.get('shooting', 10)
+        self.tackling = attributes.get('tackling', 10)
+        self.heading = attributes.get('heading', 10)
+        self.goalkeeper = attributes.get('goalkeeper', 10)
+        self.positioning = attributes.get('positioning', 10)
         
-        # Abilities (potential for skill improvement)
-        self.kab = kab  # Shot stopping ability
-        self.tab = tab  # Tackling ability
-        self.pab = pab  # Passing ability
-        self.sab = sab  # Shooting ability
+        # Match statistics
+        self.reset_match_stats()
         
-        # Statistics
-        self.games = games
-        self.saves = saves
-        self.ktk = ktk  # Key tackles
-        self.kps = kps  # Key passes
-        self.shots = shots
-        self.goals = goals
-        self.assists = assists
+    def reset_match_stats(self):
+        """Reset all match-related statistics"""
+        self.match_goals = 0
+        self.match_assists = 0
+        self.match_shots = 0
+        self.match_shots_on_target = 0
+        self.match_passes = 0
+        self.match_passes_completed = 0
+        self.match_tackles = 0
+        self.match_tackles_won = 0
+        self.match_fouls = 0
+        self.match_distance = 0
+        self.match_minutes = 0
+        self.match_yellow_card = False
+        self.match_red_card = False
+        self.current_fatigue = 0
         
-        # Status
-        self.dp = dp  # Disciplinary points
-        self.injury = injury
-        self.suspension = suspension
-        self.fitness = fitness
+    def calculate_fatigue(self, current_minute):
+        """Calculate player's current fatigue level based on minutes played and stamina"""
+        base_fatigue = current_minute / 90.0 * 10  # Base fatigue increases linearly with time
+        stamina_factor = (20 - self.stamina) / 10.0  # Lower stamina = higher fatigue
         
-        # Match-specific
-        self.position = None
-        self.side = None
-        self.in_game = False
-        self.cards = []
-        self.subbed_out = False
+        self.current_fatigue = base_fatigue * stamina_factor
+        # Ensure fatigue is between 0-1
+        return max(0, min(1, self.current_fatigue / 10))
         
-    @classmethod
-    def from_roster_line(cls, line):
-        """Parse a player from a roster file line"""
-        parts = line.strip().split()
-        if len(parts) < 21:  # Minimal required fields
-            raise ValueError(f"Invalid roster line format: {line}")
+    def get_effective_attribute(self, attribute_name, current_minute=None):
+        """Get attribute value adjusted for fatigue and other factors"""
+        base_value = getattr(self, attribute_name, 10)
         
-        name = parts[0]
-        age = int(parts[1])
-        nationality = parts[2]
-        preferred_side = parts[3]
-        st = int(parts[4])
-        tk = int(parts[5])
-        ps = int(parts[6])
-        sh = int(parts[7])
-        sm = int(parts[8])
-        ag = int(parts[9])
-        kab = int(parts[10])
-        tab = int(parts[11])
-        pab = int(parts[12])
-        sab = int(parts[13])
-        games = int(parts[14])
-        saves = int(parts[15])
-        ktk = int(parts[16])
-        kps = int(parts[17])
-        shots = int(parts[18])
-        goals = int(parts[19])
-        assists = int(parts[20])
-        dp = int(parts[21])
-        injury = int(parts[22])
-        suspension = int(parts[23])
-        fitness = int(parts[24])
+        if current_minute is not None:
+            fatigue_penalty = self.calculate_fatigue(current_minute) * 5
+            return max(1, base_value - fatigue_penalty)
         
-        return cls(
-            name=name, age=age, nationality=nationality, preferred_side=preferred_side,
-            st=st, tk=tk, ps=ps, sh=sh, sm=sm, ag=ag,
-            kab=kab, tab=tab, pab=pab, sab=sab,
-            games=games, saves=saves, ktk=ktk, kps=kps, shots=shots, goals=goals, assists=assists,
-            dp=dp, injury=injury, suspension=suspension, fitness=fitness
-        )
-    
-    def __str__(self):
-        if self.position:
-            return f"{self.name} ({self.position})"
-        return self.name
+        return base_value
+        
+    def calculate_match_rating(self):
+        """Calculate player's match rating based on performance"""
+        # Base rating
+        rating = 6.0
+        
+        # Contribution to rating from goals and assists
+        rating += self.match_goals * 0.8
+        rating += self.match_assists * 0.5
+        
+        # Contribution from general play (passes, tackles)
+        if self.match_passes > 0:
+            pass_completion = self.match_passes_completed / self.match_passes
+            rating += (pass_completion - 0.5) * 2  # Bonus for good passing
+        
+        tackle_contribution = self.match_tackles_won * 0.1
+        rating += tackle_contribution
+        
+        # Penalty for cards
+        if self.match_yellow_card:
+            rating -= 0.5
+        if self.match_red_card:
+            rating -= 2.0
+            
+        # Cap rating between 1-10
+        return max(1.0, min(10.0, rating))

@@ -1,744 +1,614 @@
-"""
-Enhanced match simulation engine for ESMS Python.
-Integrates proper tactics and commentary systems.
-"""
+# esms/enhanced_match.py
 import random
-from .tactics import tact_manager
-from .commentary import commentary_manager
-
-class MatchEvent:
-    def __init__(self, minute, event_type, team=None, player=None, text=None, 
-                 assisting_player=None, additional_data=None):
-        self.minute = minute
-        self.event_type = event_type
-        self.team = team
-        self.player = player
-        self.assisting_player = assisting_player
-        self.additional_data = additional_data or {}
-        self.text = text or self.generate_text()
-    
-    def generate_text(self):
-        """Generate text for this event using the commentary system"""
-        cm = commentary_manager()
-        
-        if self.event_type == "kickoff":
-            return f"Match begins! {self.team.name} kicks off!"
-        elif self.event_type == "halftime":
-            return f"Half time! The score is {self.additional_data.get('score', '')}"
-        elif self.event_type == "fulltime":
-            return f"Full time! Final score: {self.additional_data.get('score', '')}"
-        elif self.event_type == "chance":
-            return f"Min. {self.minute} :({self.team.name}) {self.player.name} finds some space"
-        elif self.event_type == "assisted_chance":
-            if self.assisting_player:
-                return f"Min. {self.minute} :({self.team.name}) {self.assisting_player.name} passes to {self.player.name}"
-            return f"Min. {self.minute} :({self.team.name}) {self.player.name} receives a good pass"
-        elif self.event_type == "tackle":
-            return f"          ... Cleared by {self.player.name}"
-        elif self.event_type == "shot":
-            return f"          ... {self.player.name} takes a shot!"
-        elif self.event_type == "save":
-            return f"          ... Saved by {self.player.name}"
-        elif self.event_type == "offtarget":
-            return f"          ... But it goes wide"
-        elif self.event_type == "goal":
-            return f"          ... GOAL!! {self.player.name} scores for {self.team.name}!"
-        elif self.event_type == "foul":
-            return f"Min. {self.minute} :({self.team.name}) {self.player.name} commits a foul"
-        elif self.event_type == "yellow":
-            return f"          ... Yellow card for {self.player.name}"
-        elif self.event_type == "red":
-            return f"          ... RED CARD! {self.player.name} is sent off!"
-        elif self.event_type == "pass":
-            if self.assisting_player:
-                return f"Min. {self.minute} :({self.team.name}) {self.player.name} passes to {self.assisting_player.name}"
-            return f"Min. {self.minute} :({self.team.name}) {self.player.name} makes a pass"
-        elif self.event_type == "commentary":
-            return self.additional_data.get('commentary', f"Min. {self.minute} : Match continues...")
-        
-        # Generic fallback text
-        return f"[{self.event_type.upper()} at minute {self.minute}]"
+from esms.tactics import tact_manager
+from esms.commentary import commentary_manager
 
 class EnhancedMatchEngine:
-    """
-    Enhanced match simulation engine with proper tactics and commentary.
-    """
-    def __init__(self, config=None):
+    def __init__(self, config):
         self.config = config
-        self.events = []
         self.home_team = None
         self.away_team = None
+        self.current_minute = 0
         self.home_score = 0
         self.away_score = 0
-        self.current_minute = 0
+        self.match_events = []
         
-        # Initialize tactics and commentary managers if needed
-        try:
-            tact_manager().init('tactics.dat')
-        except Exception as e:
-            print(f"Warning: Could not initialize tactics: {str(e)}")
-            
-        try:
-            commentary_manager().init('language.dat')
-        except Exception as e:
-            print(f"Warning: Could not initialize commentary: {str(e)}")
-    
+        # Match statistics
+        self.home_possession = 50
+        self.away_possession = 50
+        self.home_shots = 0
+        self.away_shots = 0
+        self.home_shots_on_target = 0
+        self.away_shots_on_target = 0
+        self.home_fouls = 0
+        self.away_fouls = 0
+        self.home_corners = 0
+        self.away_corners = 0
+        
+        # Match status
+        self.last_team_with_ball = None
+        self.current_zone = 3  # Middle zone (1-5 scale: 1=home goal, 5=away goal)
+        self.momentum = 0  # -10 to +10 scale (negative=home momentum, positive=away)
+
     def setup_match(self, home_team, away_team):
-        """Configure teams for the match"""
         self.home_team = home_team
         self.away_team = away_team
+        
+        # Reset player stats
+        for player in self.home_team.players + self.away_team.players:
+            player.reset_match_stats()
+            
+        # Apply tactical effects
+        self.apply_tactical_effects(self.home_team, self.away_team)
+        self.apply_tactical_effects(self.away_team, self.home_team)
+        
+        # Reset match statistics
         self.home_score = 0
         self.away_score = 0
-        self.events = []
         self.current_minute = 0
-        
-        # Add kickoff event
-        kickoff_event = MatchEvent(1, "kickoff", team=self.home_team)
-        self.events.append(kickoff_event)
-    
-    def calculate_player_contribution(self, player, role_positions, skill, tactic, opp_tactic):
-        """
-        Calculate a player's contribution for a particular skill,
-        using the tactics system for proper multipliers.
-        """
-        # Get the player's position without side (e.g., DF, MF, FW)
-        # Assume position is like "DFL", "MFC", etc.
-        if player.position and len(player.position) >= 2:
-            pos = player.position[0:2]
-            
-            # Check if the position is a valid one for the role
-            if pos in role_positions:
-                # Get the player's skill value for this skill
-                if skill == "TK":
-                    skill_value = player.tk
-                elif skill == "PS":
-                    skill_value = player.ps
-                elif skill == "SH":
-                    skill_value = player.sh
-                else:
-                    return 0
-                
-                try:
-                    # Get the proper multiplier from the tactics system
-                    mult = tact_manager().get_mult(tactic, opp_tactic, pos, skill)
-                    
-                    # Calculate contribution (skill value * multiplier)
-                    contribution = skill_value * mult
-                    
-                    # Apply fitness adjustment (players with low fitness contribute less)
-                    fitness_factor = player.fitness / 100.0
-                    contribution *= fitness_factor
-                    
-                    # Apply side adjustment (players on their preferred side perform better)
-                    if len(player.position) >= 3 and player.preferred_side:
-                        side = player.position[2]
-                        if side in player.preferred_side:
-                            # Playing on preferred side
-                            contribution *= 1.1
-                        else:
-                            # Playing on non-preferred side
-                            contribution *= 0.9
-                    
-                    return contribution
-                    
-                except Exception:
-                    # If tactics system fails, use a simple fallback
-                    return skill_value * 0.5
-        
-        return 0
-    
-    def calculate_team_strength(self, team, area, opp_team):
-        """
-        Calculate team strength in a particular area (attack, midfield, defense)
-        using proper tactics multipliers.
-        """
-        opp_tactic = opp_team.tactic
-        
-        if area == "attack":
-            # Calculate attack strength using shooting and passing
-            attack_strength = 0
-            
-            # Calculate contributions from players
-            for player in team.lineup:
-                # Forwards contribute most to attack with shooting
-                if player.position and player.position.startswith("FW"):
-                    attack_strength += self.calculate_player_contribution(
-                        player, ["FW"], "SH", team.tactic, opp_tactic)
-                    attack_strength += self.calculate_player_contribution(
-                        player, ["FW"], "PS", team.tactic, opp_tactic) * 0.5
-                
-                # Attacking midfielders also contribute significantly
-                elif player.position and player.position.startswith("AM"):
-                    attack_strength += self.calculate_player_contribution(
-                        player, ["AM"], "SH", team.tactic, opp_tactic) * 0.8
-                    attack_strength += self.calculate_player_contribution(
-                        player, ["AM"], "PS", team.tactic, opp_tactic) * 0.6
-                
-                # Midfielders contribute with passing primarily
-                elif player.position and player.position.startswith("MF"):
-                    attack_strength += self.calculate_player_contribution(
-                        player, ["MF"], "PS", team.tactic, opp_tactic) * 0.7
-                    attack_strength += self.calculate_player_contribution(
-                        player, ["MF"], "SH", team.tactic, opp_tactic) * 0.3
-                
-                # Defensive midfielders contribute a bit
-                elif player.position and player.position.startswith("DM"):
-                    attack_strength += self.calculate_player_contribution(
-                        player, ["DM"], "PS", team.tactic, opp_tactic) * 0.4
-                
-                # Defenders contribute minimally to attack
-                elif player.position and player.position.startswith("DF"):
-                    attack_strength += self.calculate_player_contribution(
-                        player, ["DF"], "PS", team.tactic, opp_tactic) * 0.2
-            
-            return attack_strength
-            
-        elif area == "defense":
-            # Calculate defense strength using tackling primarily
-            defense_strength = 0
-            
-            # Add goalkeeper's contribution (shot stopping)
-            goalkeeper = team.get_goalkeeper()
-            if goalkeeper:
-                defense_strength += goalkeeper.st * 3
-            
-            # Calculate contributions from players
-            for player in team.lineup:
-                # Defenders contribute most to defense
-                if player.position and player.position.startswith("DF"):
-                    defense_strength += self.calculate_player_contribution(
-                        player, ["DF"], "TK", team.tactic, opp_tactic) * 1.0
-                
-                # Defensive midfielders also contribute significantly
-                elif player.position and player.position.startswith("DM"):
-                    defense_strength += self.calculate_player_contribution(
-                        player, ["DM"], "TK", team.tactic, opp_tactic) * 0.8
-                
-                # Midfielders contribute somewhat
-                elif player.position and player.position.startswith("MF"):
-                    defense_strength += self.calculate_player_contribution(
-                        player, ["MF"], "TK", team.tactic, opp_tactic) * 0.5
-                
-                # Attacking players contribute minimally to defense
-                elif player.position and player.position.startswith("AM"):
-                    defense_strength += self.calculate_player_contribution(
-                        player, ["AM"], "TK", team.tactic, opp_tactic) * 0.3
-                elif player.position and player.position.startswith("FW"):
-                    defense_strength += self.calculate_player_contribution(
-                        player, ["FW"], "TK", team.tactic, opp_tactic) * 0.2
-            
-            return defense_strength
-            
-        elif area == "midfield":
-            # Calculate midfield strength using primarily passing and some tackling
-            midfield_strength = 0
-            
-            # Calculate contributions from players
-            for player in team.lineup:
-                # Midfielders contribute most to midfield control
-                if player.position and player.position.startswith("MF"):
-                    midfield_strength += self.calculate_player_contribution(
-                        player, ["MF"], "PS", team.tactic, opp_tactic) * 1.0
-                    midfield_strength += self.calculate_player_contribution(
-                        player, ["MF"], "TK", team.tactic, opp_tactic) * 0.5
-                
-                # Defensive and attacking midfielders also contribute significantly
-                elif player.position and player.position.startswith("DM"):
-                    midfield_strength += self.calculate_player_contribution(
-                        player, ["DM"], "PS", team.tactic, opp_tactic) * 0.8
-                    midfield_strength += self.calculate_player_contribution(
-                        player, ["DM"], "TK", team.tactic, opp_tactic) * 0.7
-                elif player.position and player.position.startswith("AM"):
-                    midfield_strength += self.calculate_player_contribution(
-                        player, ["AM"], "PS", team.tactic, opp_tactic) * 0.8
-                    midfield_strength += self.calculate_player_contribution(
-                        player, ["AM"], "TK", team.tactic, opp_tactic) * 0.3
-                
-                # Other positions contribute less to midfield
-                elif player.position and player.position.startswith("DF"):
-                    midfield_strength += self.calculate_player_contribution(
-                        player, ["DF"], "PS", team.tactic, opp_tactic) * 0.3
-                elif player.position and player.position.startswith("FW"):
-                    midfield_strength += self.calculate_player_contribution(
-                        player, ["FW"], "PS", team.tactic, opp_tactic) * 0.3
-            
-            return midfield_strength
-        
-        return 0
-    
-    def simulate_attack(self, attacking_team, defending_team):
-        """Simulate an attack using proper tactics"""
-        # Get attack and defense strengths
-        attack_strength = self.calculate_team_strength(attacking_team, "attack", defending_team)
-        defense_strength = self.calculate_team_strength(defending_team, "defense", attacking_team)
-        
-        # Apply home advantage if applicable
-        if attacking_team == self.home_team:
-            home_bonus = self.config.get('HOME_BONUS', 150) if self.config else 150
-            attack_strength *= (1 + home_bonus / 1000.0)
-        
-        # Random factor to add variability (0.7 to 1.3)
-        random_factor = 0.7 + random.random() * 0.6
-        
-        # Determine if attack creates a chance
-        chance_probability = attack_strength / (attack_strength + defense_strength) * random_factor
-        
-        if random.random() < chance_probability:
-            # Choose attacking player - prefer forwards and attacking midfielders
-            forwards = [p for p in attacking_team.lineup if p.position and p.position.startswith("FW")]
-            attacking_mids = [p for p in attacking_team.lineup if p.position and p.position.startswith("AM")]
-            midfielders = [p for p in attacking_team.lineup if p.position and p.position.startswith("MF")]
-            
-            # Choose player based on roles and probabilities
-            if forwards and random.random() < 0.6:
-                # 60% chance a forward creates/receives the chance
-                primary_player = random.choice(forwards)
-            elif attacking_mids and random.random() < 0.5:
-                # 30% chance an attacking midfielder creates/receives the chance
-                primary_player = random.choice(attacking_mids)
-            elif midfielders and random.random() < 0.8:
-                # 8% chance a midfielder creates/receives the chance
-                primary_player = random.choice(midfielders)
-            else:
-                # 2% chance another player creates/receives the chance
-                primary_player = random.choice(attacking_team.lineup)
-            
-            # Determine if this is a solo chance or assisted
-            if random.random() < 0.4:  # 40% chance of assisted chance
-                # Find a player to assist
-                potential_assisters = [p for p in attacking_team.lineup if p != primary_player]
-                
-                # Prefer midfielders and forwards for assist
-                midfield_attackers = [p for p in potential_assisters if p.position and 
-                                    (p.position.startswith("MF") or p.position.startswith("AM"))]
-                
-                if midfield_attackers and random.random() < 0.7:  # 70% chance midfielder assists
-                    assister = random.choice(midfield_attackers)
-                else:  # 30% chance another player assists
-                    assister = random.choice(potential_assisters) if potential_assisters else primary_player
-                
-                # Create assisted chance event
-                chance_event = MatchEvent(
-                    self.current_minute, 
-                    "assisted_chance", 
-                    team=attacking_team, 
-                    player=primary_player,
-                    assisting_player=assister
-                )
-            else:
-                # Create solo chance event
-                chance_event = MatchEvent(
-                    self.current_minute, 
-                    "chance", 
-                    team=attacking_team, 
-                    player=primary_player
-                )
-            
-            self.events.append(chance_event)
-            
-            # Now determine if the chance results in a goal
-            # First, check if the defense makes a key tackle
-            if random.random() < defense_strength / (attack_strength * 2):
-                # Chance stopped by a key tackle
-                # Choose a defending player - prefer defenders and defensive midfielders
-                defenders = [p for p in defending_team.lineup if p.position and p.position.startswith("DF")]
-                def_mids = [p for p in defending_team.lineup if p.position and p.position.startswith("DM")]
-                
-                if defenders and random.random() < 0.7:  # 70% chance a defender makes the tackle
-                    tackler = random.choice(defenders)
-                elif def_mids and random.random() < 0.6:  # 18% chance a defensive midfielder makes the tackle
-                    tackler = random.choice(def_mids)
-                else:  # 12% chance another player makes the tackle
-                    tackler = random.choice([p for p in defending_team.lineup if p != defending_team.get_goalkeeper()])
-                
-                # Create tackle event
-                tackle_event = MatchEvent(
-                    self.current_minute, 
-                    "tackle", 
-                    team=defending_team, 
-                    player=tackler
-                )
-                self.events.append(tackle_event)
-                
-                # Update player stats
-                tackler.ktk = getattr(tackler, 'ktk', 0) + 1
-            else:
-                # Chance results in a shot
-                shot_event = MatchEvent(
-                    self.current_minute, 
-                    "shot", 
-                    team=attacking_team, 
-                    player=primary_player
-                )
-                self.events.append(shot_event)
-                
-                # Update player stats
-                primary_player.shots = getattr(primary_player, 'shots', 0) + 1
-                
-                # Determine if the shot results in a goal
-                goalkeeper = defending_team.get_goalkeeper()
-                
-                if goalkeeper:
-                    # Calculate shot power vs goalkeeper ability
-                    shot_power = primary_player.sh * (0.8 + random.random() * 0.4)  # Random factor
-                    save_power = goalkeeper.st * (0.8 + random.random() * 0.4)  # Random factor
-                    
-                    # Apply fitness adjustments
-                    shot_power *= primary_player.fitness / 100.0
-                    save_power *= goalkeeper.fitness / 100.0
-                    
-                    # Determine goal probability
-                    goal_chance = shot_power / (shot_power + save_power)
-                    
-                    # Random chance of shot going off target
-                    if random.random() < 0.2:  # 20% chance of shot off target
-                        off_target_event = MatchEvent(
-                            self.current_minute, 
-                            "offtarget", 
-                            team=attacking_team,
-                            player=primary_player
-                        )
-                        self.events.append(off_target_event)
-                    elif random.random() < goal_chance:
-                        # Goal!
-                        self.add_goal(attacking_team, primary_player)
-                        
-                        # If there was an assister, update their stats
-                        if hasattr(chance_event, 'assisting_player') and chance_event.assisting_player:
-                            chance_event.assisting_player.assists = getattr(chance_event.assisting_player, 'assists', 0) + 1
-                    else:
-                        # Save by goalkeeper
-                        save_event = MatchEvent(
-                            self.current_minute, 
-                            "save", 
-                            team=defending_team, 
-                            player=goalkeeper
-                        )
-                        self.events.append(save_event)
-                        
-                        # Update goalkeeper stats
-                        goalkeeper.saves = getattr(goalkeeper, 'saves', 0) + 1
-                else:
-                    # No goalkeeper (highly unlikely) - 90% chance of goal
-                    if random.random() < 0.9:
-                        self.add_goal(attacking_team, primary_player)
-                        
-                        # If there was an assister, update their stats
-                        if hasattr(chance_event, 'assisting_player') and chance_event.assisting_player:
-                            chance_event.assisting_player.assists = getattr(chance_event.assisting_player, 'assists', 0) + 1
-    
-    def simulate_passing_sequence(self, team):
-        """Simulate a passing sequence that doesn't result in a shot"""
-        # Choose a midfielder or defender to start the sequence
-        midfielders = [p for p in team.lineup if p.position and 
-                      (p.position.startswith("MF") or p.position.startswith("DM"))]
-        defenders = [p for p in team.lineup if p.position and p.position.startswith("DF")]
-        
-        if midfielders and random.random() < 0.7:  # 70% chance to start with a midfielder
-            starter = random.choice(midfielders)
-        elif defenders:  # Otherwise start with a defender
-            starter = random.choice(defenders)
-        else:
-            starter = random.choice(team.lineup)  # Fallback to any player
-        
-        # Choose another player to receive the pass
-        receivers = [p for p in team.lineup if p != starter]
-        if not receivers:
-            return
-        
-        receiver = random.choice(receivers)
-        
-        # Create a passing event
-        pass_event = MatchEvent(
-            self.current_minute,
-            "pass",
-            team=team,
-            player=starter,
-            assisting_player=receiver,
-            text=f"Min. {self.current_minute} :({team.name}) {starter.name} passes to {receiver.name}"
-        )
-        self.events.append(pass_event)
-        
-        # Update player statistics
-        starter.kps = getattr(starter, 'kps', 0) + 1  # Count as a key pass for statistics
-        
-        # Occasionally add a second pass in the sequence
-        if random.random() < 0.4:  # 40% chance for a second pass
-            second_receivers = [p for p in team.lineup if p != receiver and p != starter]
-            if not second_receivers:
-                return
-                
-            second_receiver = random.choice(second_receivers)
-            
-            second_pass_event = MatchEvent(
-                self.current_minute,
-                "pass",
-                team=team,
-                player=receiver,
-                assisting_player=second_receiver,
-                text=f"          ... {receiver.name} finds {second_receiver.name}"
-            )
-            self.events.append(second_pass_event)
-            receiver.kps = getattr(receiver, 'kps', 0) + 1
+        self.match_events = []
+        self.last_team_with_ball = self.home_team if random.random() < 0.5 else self.away_team
+        self.current_zone = 3
+        self.momentum = 0
 
-    def add_game_state_commentary(self):
-        """Add commentary about the current state of the game"""
-        score_diff = abs(self.home_score - self.away_score)
-        leading_team = self.home_team if self.home_score > self.away_score else self.away_team
-        trailing_team = self.away_team if self.home_score > self.away_score else self.home_team
+    def apply_tactical_effects(self, team, opponent):
+        """Apply tactical effects to team attributes"""
+        tactic = team.tactic
         
-        commentary = ""
+        # Default values if tactic not found
+        team.temp_attacking_boost = 0
+        team.temp_defensive_boost = 0
+        team.temp_attacking_penalty = 0
+        team.temp_defensive_penalty = 0
+        team.temp_counter_bonus = 0
         
-        # Different commentary based on game state
-        if self.home_score == self.away_score:
-            options = [
-                f"Both teams look evenly matched so far.",
-                f"It's still all square with neither team able to break the deadlock.",
-                f"The managers will be thinking about changes as we remain tied."
-            ]
-            commentary = random.choice(options)
-        elif score_diff == 1:
-            options = [
-                f"{leading_team.name} with a slender lead, but it's still anyone's game.",
-                f"{trailing_team.name} pushing for an equalizer.",
-                f"Just one goal in it as {leading_team.name} tries to hold on."
-            ]
-            commentary = random.choice(options)
-        elif score_diff > 1:
-            options = [
-                f"{leading_team.name} in control with a {score_diff} goal lead.",
-                f"{trailing_team.name} has a mountain to climb, down by {score_diff}.",
-                f"It's looking comfortable for {leading_team.name} with their {score_diff} goal cushion."
-            ]
-            commentary = random.choice(options)
+        # Get tactic effects from the tactics manager
+        tactic_effects = tact_manager().get_tactic_effects(tactic)
         
-        # Add time-specific commentary
-        if 30 <= self.current_minute <= 44:
-            options = [
-                f"Approaching half-time now.",
-                f"The first half is winding down."
-            ]
-            if random.random() < 0.5:  # 50% chance to add this
-                commentary += " " + random.choice(options)
-        elif 75 <= self.current_minute <= 85:
-            options = [
-                f"Into the closing stages of the match.",
-                f"Not much time left for any more goals."
-            ]
-            if random.random() < 0.5:  # 50% chance to add this
-                commentary += " " + random.choice(options)
-        elif self.current_minute > 85:
-            options = [
-                f"We're deep into the final minutes now.",
-                f"The final whistle is approaching."
-            ]
-            if random.random() < 0.5:  # 50% chance to add this
-                commentary += " " + random.choice(options)
-        
-        if commentary:
-            commentary_event = MatchEvent(
-                self.current_minute,
-                "commentary",
-                additional_data={'commentary': f"Min. {self.current_minute} : {commentary}"},
-                text=f"Min. {self.current_minute} : {commentary}"
-            )
-            self.events.append(commentary_event)
-    
-    def add_goal(self, team, scorer):
-        """Add a goal to the match"""
-        if team == self.home_team:
-            self.home_score += 1
-        else:
-            self.away_score += 1
-        
-        # Create goal event
-        goal_event = MatchEvent(self.current_minute, "goal", team=team, player=scorer)
-        self.events.append(goal_event)
-        
-        # Update player statistics
-        scorer.goals = getattr(scorer, 'goals', 0) + 1
-    
-    def check_for_cards(self, team):
-        """Check if any players should receive cards"""
-        for player in team.lineup:
-            # Higher aggression increases card chance
-            card_chance = player.ag / 1000.0  # 0-100 aggression gives 0-10% chance
-            
-            if random.random() < card_chance:
-                # Create foul event
-                foul_event = MatchEvent(
-                    self.current_minute, 
-                    "foul", 
-                    team=team, 
-                    player=player
-                )
-                self.events.append(foul_event)
+        if tactic_effects:
+            # Apply effects based on tactic
+            if tactic == 'A':  # Attacking
+                team.temp_attacking_boost = tactic_effects.get('attacking_boost', 2)
+                team.temp_defensive_penalty = tactic_effects.get('defensive_penalty', 1)
+            elif tactic == 'D':  # Defensive
+                team.temp_defensive_boost = tactic_effects.get('defensive_boost', 2)
+                team.temp_attacking_penalty = tactic_effects.get('attacking_penalty', 1)
+            elif tactic == 'P':  # Possession
+                team.temp_passing_boost = tactic_effects.get('passing_boost', 2)
                 
-                # Determine card (yellow most common, red rare)
-                card_severity = random.random()
-                
-                if card_severity < 0.7:  # 70% chance of no card
-                    pass  # No card, just a foul
-                elif card_severity < 0.95:  # 25% chance of yellow
-                    # Yellow card
-                    card_event = MatchEvent(
-                        self.current_minute, 
-                        "yellow", 
-                        team=team, 
-                        player=player
-                    )
-                    self.events.append(card_event)
-                    if not hasattr(player, 'cards'):
-                        player.cards = []
-                    player.cards.append("yellow")
-                    
-                    # Check for second yellow
-                    if player.cards.count("yellow") >= 2:
-                        red_event = MatchEvent(
-                            self.current_minute, 
-                            "red", 
-                            team=team, 
-                            player=player
-                        )
-                        self.events.append(red_event)
-                        player.cards.append("red")
-                else:  # 5% chance of straight red
-                    # Direct red card
-                    red_event = MatchEvent(
-                        self.current_minute, 
-                        "red", 
-                        team=team, 
-                        player=player
-                    )
-                    self.events.append(red_event)
-                    if not hasattr(player, 'cards'):
-                        player.cards = []
-                    player.cards.append("red")
-    
-    def process_team_orders(self, team, other_team):
-        """Process team orders for substitutions and tactic changes"""
-        # Score difference (positive if team is winning, negative if losing)
-        score_diff = self.home_score - self.away_score
-        if team == self.away_team:
-            score_diff = -score_diff
-            
-        # Check for tactic changes based on score and time
-        if hasattr(team, 'orders') and team.orders:
-            for order in team.orders:
-                if order.get('type') == 'TACTIC' and order.get('new_tactic'):
-                    # Check conditions
-                    min_condition = order.get('min')
-                    score_condition = order.get('score')
-                    
-                    min_met = (min_condition is None or 
-                              (min_condition.get('operator') == '>=' and self.current_minute >= min_condition.get('value')) or
-                              (min_condition.get('operator') == '<=' and self.current_minute <= min_condition.get('value')) or
-                              (min_condition.get('operator') == '=' and self.current_minute == min_condition.get('value')))
-                    
-                    score_met = (score_condition is None or 
-                                (score_condition.get('operator') == '>=' and score_diff >= score_condition.get('value')) or
-                                (score_condition.get('operator') == '<=' and score_diff <= score_condition.get('value')) or
-                                (score_condition.get('operator') == '=' and score_diff == score_condition.get('value')))
-                    
-                    if min_met and score_met:
-                        # Change tactic
-                        old_tactic = team.tactic
-                        team.tactic = order.get('new_tactic')
-                        
-                        # Create tactic change event
-                        tactic_event = MatchEvent(
-                            self.current_minute,
-                            "tactic_change",
-                            team=team,
-                            additional_data={'new_tactic': team.tactic},
-                            text=f"Min. {self.current_minute} :({team.name}) {team.name} will now play {team.tactic}"
-                        )
-                        self.events.append(tactic_event)
-    
-    def simulate_minute(self):
-        """Simulate one minute of play with increased events"""
-        # Process team orders first
-        self.process_team_orders(self.home_team, self.away_team)
-        self.process_team_orders(self.away_team, self.home_team)
-        
-        # Determine which team has initiative in this minute
-        home_midfield = self.calculate_team_strength(self.home_team, "midfield", self.away_team)
-        away_midfield = self.calculate_team_strength(self.away_team, "midfield", self.home_team)
-        
-        # Apply home advantage to midfield
-        home_bonus = self.config.get('HOME_BONUS', 150) if self.config else 150
-        home_midfield *= (1 + home_bonus / 1000.0)
-        
-        # Probability of home team having initiative
-        if home_midfield + away_midfield > 0:
-            home_initiative_prob = home_midfield / (home_midfield + away_midfield)
-        else:
-            home_initiative_prob = 0.5
-        
-        # Determine if an action occurs - INCREASED from 15% to 35% chance per minute
-        if random.random() < 0.35:  # Increased event probability
-            # Determine attacking team
-            if random.random() < home_initiative_prob:
-                self.simulate_attack(self.home_team, self.away_team)
-            else:
-                self.simulate_attack(self.away_team, self.home_team)
-        
-        # Add occasional passing sequences without shots (for more varied commentary)
-        elif random.random() < 0.2:  # 20% chance for a passing sequence
-            if random.random() < home_initiative_prob:
-                self.simulate_passing_sequence(self.home_team)
-            else:
-                self.simulate_passing_sequence(self.away_team)
-        
-        # Check for cards (increased probability)
-        if random.random() < 0.05:  # Increased from 3% to 5% chance per minute
-            if random.random() < 0.5:
-                self.check_for_cards(self.home_team)
-            else:
-                self.check_for_cards(self.away_team)
-        
-        # Update player fitness (they get more tired as the game progresses)
-        for team in [self.home_team, self.away_team]:
-            for player in team.lineup:
-                # Reduce fitness based on stamina (higher stamina = less fitness loss)
-                fitness_loss = 0.1 * (100 - player.sm) / 100.0
-                player.fitness = max(50, player.fitness - fitness_loss)
-        
-        # Special events at certain minutes
-        if self.current_minute == 45:
-            halftime_event = MatchEvent(
-                45, 
-                "halftime", 
-                additional_data={'score': f"{self.home_team.name} {self.home_score} - {self.away_score} {self.away_team.name}"}
-            )
-            self.events.append(halftime_event)
-        
-        # Add occasional commentator observations about the game state
-        if random.random() < 0.05 and self.current_minute > 15:  # 5% chance after minute 15
-            self.add_game_state_commentary()
-    
+            # Consider counter-tactic relationships
+            if tactic == 'P' and opponent.tactic == 'A':  # Possession against Attacking
+                team.temp_counter_bonus = tactic_effects.get('counter_bonus', 1)
+            elif tactic == 'C' and opponent.tactic == 'P':  # Counter against Possession
+                team.temp_counter_bonus = tactic_effects.get('counter_bonus', 2)
+
     def run_full_match(self):
-        """Simulate all minutes of the match"""
-        # Simulate each minute
-        for minute in range(1, 91):
-            self.current_minute = minute
-            self.simulate_minute()
+        """Run a complete match simulation"""
+        self.add_event(0, "kickoff", "Match begins!")
         
-        # Add full time event
-        fulltime_event = MatchEvent(
-            90, 
-            "fulltime", 
-            additional_data={'score': f"{self.home_team.name} {self.home_score} - {self.away_score} {self.away_team.name}"}
-        )
-        self.events.append(fulltime_event)
+        # Simulate first half
+        self.simulate_half(1, 1, 45)
         
-        # Return match result
+        # Half time
+        self.add_event(45, "halftime", f"Half time score: {self.home_team.name} {self.home_score} - {self.away_score} {self.away_team.name}")
+        
+        # Simulate second half
+        self.simulate_half(2, 46, 90)
+        
+        # Generate match stats
+        match_stats = self.generate_match_stats()
+        
+        # Final whistle
+        self.add_event(90, "fulltime", f"Full time: {self.home_team.name} {self.home_score} - {self.away_score} {self.away_team.name}")
+        
         return {
-            'events': self.events,
+            'home_team': self.home_team,
+            'away_team': self.away_team,
             'home_score': self.home_score,
             'away_score': self.away_score,
-            'home_team': self.home_team.name,
-            'away_team': self.away_team.name,
-            'home_team_obj': self.home_team,
-            'away_team_obj': self.away_team
+            'events': self.match_events,
+            'statistics': match_stats
         }
+
+    def simulate_half(self, half_id, start_minute, end_minute):
+        """Simulate one half of the match"""
+        self.current_minute = start_minute
+        
+        while self.current_minute < end_minute:
+            # Determine event time increment (1-3 minutes)
+            time_increment = random.randint(1, 3)
+            self.current_minute += time_increment
+            
+            if self.current_minute > end_minute:
+                self.current_minute = end_minute
+                
+            # Generate match event
+            self.generate_match_event()
+            
+            # Update player fatigue and match distance
+            for player in self.home_team.players + self.away_team.players:
+                player.match_minutes = self.current_minute
+                # Simulate distance covered
+                distance_per_minute = random.uniform(0.08, 0.12)  # km per minute
+                player.match_distance += distance_per_minute * time_increment
+
+    def generate_match_event(self):
+        """Generate a single match event based on current state"""
+        # Update possession
+        self.update_possession()
+        
+        # Determine which team has the ball for this event
+        if random.random() * 100 < self.home_possession:
+            attacking_team = self.home_team
+            defending_team = self.away_team
+            is_home_attacking = True
+        else:
+            attacking_team = self.away_team
+            defending_team = self.home_team
+            is_home_attacking = False
+        
+        # Update field position based on team with ball
+        self.update_field_position(attacking_team, is_home_attacking)
+        
+        # Determine event type based on field position
+        if self.current_zone in [1, 5]:  # Goal zones
+            self.process_goal_attempt(attacking_team, defending_team, is_home_attacking)
+        elif self.current_zone in [2, 4]:  # Attacking zones
+            self.process_attacking_play(attacking_team, defending_team, is_home_attacking)
+        else:  # Midfield zone
+            self.process_midfield_play(attacking_team, defending_team, is_home_attacking)
+            
+        # Update momentum
+        self.update_momentum(attacking_team, defending_team, is_home_attacking)
+
+    def update_possession(self):
+        """Update possession statistics based on team tactics and momentum"""
+        # Base possession tendency
+        if self.home_team.tactic == 'P':  # Possession tactic
+            base_possession = 55
+        elif self.away_team.tactic == 'P':
+            base_possession = 45
+        else:
+            base_possession = 50
+            
+        # Momentum effect (momentum is -10 to +10, negative values favor home team)
+        momentum_effect = -self.momentum  # Negated because negative momentum favors home
+        
+        # Calculate new possession value
+        new_possession = base_possession + momentum_effect * 0.5
+        
+        # Ensure it's within valid range
+        self.home_possession = max(30, min(70, new_possession))
+        self.away_possession = 100 - self.home_possession
+
+    def update_field_position(self, attacking_team, is_home_attacking):
+        """Update the field position based on the attacking team and current state"""
+        # Direction of movement (home team moves towards zone 5, away towards zone 1)
+        direction = 1 if is_home_attacking else -1
+        
+        # Base probability of moving forward 
+        forward_prob = 0.6
+        
+        # Adjust based on tactics
+        if attacking_team.tactic == 'A':  # Attacking
+            forward_prob += 0.1
+        elif attacking_team.tactic == 'D':  # Defensive
+            forward_prob -= 0.1
+            
+        # Adjust based on current zone (harder to advance near opponent's goal)
+        if (is_home_attacking and self.current_zone >= 4) or (not is_home_attacking and self.current_zone <= 2):
+            forward_prob -= 0.15
+            
+        # Determine movement
+        if random.random() < forward_prob:
+            # Move forward
+            new_zone = self.current_zone + direction
+        else:
+            # Move backward or stay
+            new_zone = self.current_zone - direction
+            
+        # Ensure zone is within valid range
+        self.current_zone = max(1, min(5, new_zone))
+
+    def process_goal_attempt(self, attacking_team, defending_team, is_home_attacking):
+        """Process a goal attempt"""
+        # Select attacking player (prefer forwards)
+        attacker = self.select_player_for_action(attacking_team, preference='forward')
+        
+        # Select goalkeeper
+        goalkeeper = self.select_player_for_action(defending_team, preference='goalkeeper')
+        
+        # Record shot
+        self.increment_shots(is_home_attacking)
+        attacker.match_shots += 1
+        
+        # Determine if it's on target
+        shooting_skill = attacker.get_effective_attribute('shooting', self.current_minute)
+        on_target_chance = 0.3 + (shooting_skill / 40)  # Base 30% + up to 50% from skill
+        
+        if random.random() < on_target_chance:
+            # Shot is on target
+            self.increment_shots_on_target(is_home_attacking)
+            attacker.match_shots_on_target += 1
+            
+            # Determine if it's a goal
+            gk_skill = goalkeeper.get_effective_attribute('goalkeeper', self.current_minute)
+            save_chance = 0.6 + (gk_skill / 50)  # Base 60% + up to 40% from skill
+            
+            if random.random() > save_chance:
+                # Goal scored!
+                if is_home_attacking:
+                    self.home_score += 1
+                else:
+                    self.away_score += 1
+                    
+                attacker.match_goals += 1
+                
+                # Determine if there was an assist
+                if random.random() < 0.7:  # 70% of goals have assists
+                    assister = self.select_player_for_action(attacking_team, exclude=[attacker])
+                    assister.match_assists += 1
+                    goal_desc = commentary_manager().get_goal_with_assist(
+                        attacker.name, assister.name, self.current_minute, self.home_score, self.away_score)
+                else:
+                    goal_desc = commentary_manager().get_goal(
+                        attacker.name, self.current_minute, self.home_score, self.away_score)
+                
+                self.add_event(self.current_minute, "goal", goal_desc)
+                
+                # Big momentum swing for scoring team
+                self.momentum += -5 if is_home_attacking else 5
+            else:
+                # Save by goalkeeper
+                save_desc = commentary_manager().get_save(goalkeeper.name, attacker.name)
+                self.add_event(self.current_minute, "save", save_desc)
+                
+                # Small momentum boost for good save
+                self.momentum += 1 if is_home_attacking else -1
+        else:
+            # Shot off target
+            miss_desc = commentary_manager().get_miss(attacker.name)
+            self.add_event(self.current_minute, "miss", miss_desc)
+
+    def process_attacking_play(self, attacking_team, defending_team, is_home_attacking):
+        """Process an attacking play in the final third"""
+        event_types = ["cross", "through_ball", "shot", "dribble", "pass"]
+        weights = [0.25, 0.2, 0.3, 0.15, 0.1]
+        
+        # Adjust weights based on team tactics
+        if attacking_team.tactic == 'A':  # Attacking
+            weights[2] += 0.1  # More shots
+        elif attacking_team.tactic == 'P':  # Possession
+            weights[4] += 0.1  # More passes
+            
+        # Normalize weights
+        total = sum(weights)
+        weights = [w/total for w in weights]
+        
+        # Choose event type
+        event_type = random.choices(event_types, weights=weights)[0]
+        
+        if event_type == "shot":
+            self.process_goal_attempt(attacking_team, defending_team, is_home_attacking)
+        elif event_type == "cross":
+            # Process cross
+            crosser = self.select_player_for_action(attacking_team, preference='winger')
+            target = self.select_player_for_action(attacking_team, preference='forward', exclude=[crosser])
+            defender = self.select_player_for_action(defending_team, preference='defender')
+            
+            crosser.match_passes += 1
+            
+            # Determine if cross is successful
+            cross_success = random.random() < (crosser.get_effective_attribute('passing', self.current_minute) / 20)
+            
+            if cross_success:
+                crosser.match_passes_completed += 1
+                cross_desc = commentary_manager().get_cross(crosser.name, target.name)
+            else:
+                cross_desc = commentary_manager().get_failed_cross(crosser.name, defender.name)
+                
+            self.add_event(self.current_minute, "cross", cross_desc)
+        elif event_type == "through_ball":
+            # Process through ball
+            passer = self.select_player_for_action(attacking_team, preference='midfielder')
+            receiver = self.select_player_for_action(attacking_team, preference='forward', exclude=[passer])
+            
+            passer.match_passes += 1
+            
+            # Determine if through ball is successful
+            pass_success = random.random() < (passer.get_effective_attribute('passing', self.current_minute) / 20)
+            
+            if pass_success:
+                passer.match_passes_completed += 1
+                through_desc = commentary_manager().get_through_ball(passer.name, receiver.name)
+                # Successful through ball likely leads to a shot
+                if random.random() < 0.7:
+                    self.process_goal_attempt(attacking_team, defending_team, is_home_attacking)
+            else:
+                defender = self.select_player_for_action(defending_team, preference='defender')
+                through_desc = commentary_manager().get_failed_through_ball(passer.name, defender.name)
+                
+            self.add_event(self.current_minute, "through_ball", through_desc)
+        else:
+            # Process dribble or pass
+            player = self.select_player_for_action(attacking_team)
+            target = self.select_player_for_action(attacking_team, exclude=[player])
+            
+            if event_type == "dribble":
+                defender = self.select_player_for_action(defending_team)
+                
+                # Dribble success calculation
+                dribble_skill = player.get_effective_attribute('technique', self.current_minute)
+                tackle_skill = defender.get_effective_attribute('tackling', self.current_minute)
+                
+                dribble_success = random.random() < ((dribble_skill - tackle_skill + 10) / 30)
+                
+                if dribble_success:
+                    dribble_desc = commentary_manager().get_dribble(player.name, defender.name)
+                else:
+                    dribble_desc = commentary_manager().get_tackle(defender.name, player.name)
+                    defender.match_tackles += 1
+                    defender.match_tackles_won += 1
+                    
+                self.add_event(self.current_minute, "dribble", dribble_desc)
+            else:  # pass
+                player.match_passes += 1
+                
+                pass_success = random.random() < (player.get_effective_attribute('passing', self.current_minute) / 20)
+                
+                if pass_success:
+                    player.match_passes_completed += 1
+                    pass_desc = commentary_manager().get_pass(player.name, target.name)
+                    self.add_event(self.current_minute, "pass", pass_desc)
+
+    def process_midfield_play(self, attacking_team, defending_team, is_home_attacking):
+        """Process play in the midfield"""
+        event_types = ["pass", "dribble", "tackle", "foul"]
+        weights = [0.5, 0.2, 0.2, 0.1]
+        
+        # Choose event type
+        event_type = random.choices(event_types, weights=weights)[0]
+        
+        if event_type == "pass":
+            # Process midfield pass
+            passer = self.select_player_for_action(attacking_team, preference='midfielder')
+            receiver = self.select_player_for_action(attacking_team, exclude=[passer])
+            
+            passer.match_passes += 1
+            
+            # Pass success calculation
+            pass_skill = passer.get_effective_attribute('passing', self.current_minute)
+            pass_success = random.random() < (pass_skill / 20)
+            
+            if pass_success:
+                passer.match_passes_completed += 1
+                
+                # Important passes get commentary
+                if random.random() < 0.3:  # Only 30% of midfield passes get commentary
+                    pass_desc = commentary_manager().get_pass(passer.name, receiver.name)
+                    self.add_event(self.current_minute, "pass", pass_desc)
+            else:
+                interceptor = self.select_player_for_action(defending_team)
+                interceptor.match_tackles += 1
+                interceptor.match_tackles_won += 1
+                
+                # Turnover of possession
+                self.last_team_with_ball = defending_team
+                
+                interception_desc = commentary_manager().get_interception(interceptor.name, passer.name)
+                self.add_event(self.current_minute, "interception", interception_desc)
+        
+        elif event_type == "dribble":
+            # Process midfield dribble
+            dribbler = self.select_player_for_action(attacking_team)
+            defender = self.select_player_for_action(defending_team)
+            
+            dribble_skill = dribbler.get_effective_attribute('technique', self.current_minute)
+            tackle_skill = defender.get_effective_attribute('tackling', self.current_minute)
+            
+            dribble_success = random.random() < ((dribble_skill - tackle_skill + 10) / 30)
+            
+            if dribble_success and random.random() < 0.3:  # Only 30% get commentary
+                dribble_desc = commentary_manager().get_dribble(dribbler.name, defender.name)
+                self.add_event(self.current_minute, "dribble", dribble_desc)
+            elif not dribble_success:
+                defender.match_tackles += 1
+                defender.match_tackles_won += 1
+                
+                # Turnover of possession
+                self.last_team_with_ball = defending_team
+                
+                tackle_desc = commentary_manager().get_tackle(defender.name, dribbler.name)
+                self.add_event(self.current_minute, "tackle", tackle_desc)
+        
+        elif event_type == "tackle":
+            # Process midfield tackle attempt
+            defender = self.select_player_for_action(defending_team)
+            attacker = self.select_player_for_action(attacking_team)
+            
+            defender.match_tackles += 1
+            
+            tackle_skill = defender.get_effective_attribute('tackling', self.current_minute)
+            dribble_skill = attacker.get_effective_attribute('technique', self.current_minute)
+            
+            tackle_success = random.random() < ((tackle_skill - dribble_skill + 10) / 30)
+            
+            if tackle_success:
+                defender.match_tackles_won += 1
+                
+                # Turnover of possession
+                self.last_team_with_ball = defending_team
+                
+                tackle_desc = commentary_manager().get_tackle(defender.name, attacker.name)
+                self.add_event(self.current_minute, "tackle", tackle_desc)
+            else:
+                # Failed tackle - possible foul
+                foul_chance = 0.3
+                if random.random() < foul_chance:
+                    self.process_foul(defender, attacker, is_home_attacking)
+        
+        elif event_type == "foul":
+            # Process foul
+            defender = self.select_player_for_action(defending_team)
+            attacker = self.select_player_for_action(attacking_team)
+            
+            self.process_foul(defender, attacker, is_home_attacking)
+
+    def process_foul(self, fouler, fouled, is_home_attacking):
+        """Process a foul event"""
+        # Record foul
+        if is_home_attacking:
+            self.away_fouls += 1
+        else:
+            self.home_fouls += 1
+            
+        fouler.match_fouls += 1
+        
+        # Determine if it's a card
+        card_chance = 0.2 + (fouler.match_fouls * 0.1)  # More fouls = higher card chance
+        
+        if fouler.match_yellow_card:
+            card_chance += 0.1  # Higher chance for second yellow
+            
+        if random.random() < card_chance:
+            if fouler.match_yellow_card:
+                # Second yellow = red
+                fouler.match_red_card = True
+                card_desc = commentary_manager().get_red_card(fouler.name, fouled.name)
+                self.add_event(self.current_minute, "red_card", card_desc)
+                
+                # Major momentum swing
+                self.momentum += 3 if is_home_attacking else -3
+            else:
+                # Yellow card
+                fouler.match_yellow_card = True
+                card_desc = commentary_manager().get_yellow_card(fouler.name, fouled.name)
+                self.add_event(self.current_minute, "yellow_card", card_desc)
+                
+                # Minor momentum swing
+                self.momentum += 1 if is_home_attacking else -1
+        else:
+            # Just a foul, no card
+            foul_desc = commentary_manager().get_foul(fouler.name, fouled.name)
+            self.add_event(self.current_minute, "foul", foul_desc)
+
+    def update_momentum(self, attacking_team, defending_team, is_home_attacking):
+        """Update match momentum"""
+        # Momentum naturally reverts to neutral over time
+        if self.momentum > 0:
+            self.momentum -= 0.2
+        elif self.momentum < 0:
+            self.momentum += 0.2
+            
+        # Cap momentum
+        self.momentum = max(-10, min(10, self.momentum))
+
+    def add_event(self, minute, event_type, description):
+        """Add an event to the match events list"""
+        event = {
+            'minute': minute,
+            'type': event_type,
+            'description': description
+        }
+        self.match_events.append(event)
+
+    def select_player_for_action(self, team, preference=None, exclude=None):
+        """Select a player from the team for an action, with optional position preference"""
+        exclude = exclude or []
+        available_players = [p for p in team.players if p not in exclude and not p.match_red_card]
+        
+        if not available_players:
+            return team.players[0]  # Fallback
+            
+        if preference == 'forward':
+            forwards = [p for p in available_players if p.position in ['ST', 'CF', 'LF', 'RF']]
+            if forwards:
+                return random.choice(forwards)
+        elif preference == 'midfielder':
+            midfielders = [p for p in available_players if p.position in ['CM', 'DM', 'AM', 'LM', 'RM']]
+            if midfielders:
+                return random.choice(midfielders)
+        elif preference == 'winger':
+            wingers = [p for p in available_players if p.position in ['LW', 'RW', 'LM', 'RM']]
+            if wingers:
+                return random.choice(wingers)
+        elif preference == 'defender':
+            defenders = [p for p in available_players if p.position in ['CB', 'LB', 'RB', 'LWB', 'RWB']]
+            if defenders:
+                return random.choice(defenders)
+        elif preference == 'goalkeeper':
+            goalkeepers = [p for p in available_players if p.position == 'GK']
+            if goalkeepers:
+                return goalkeepers[0]
+                
+        # Default: return random player
+        return random.choice(available_players)
+
+    def increment_shots(self, is_home):
+        """Increment shot count for the appropriate team"""
+        if is_home:
+            self.home_shots += 1
+        else:
+            self.away_shots += 1
+            
+    def increment_shots_on_target(self, is_home):
+        """Increment shots on target count for the appropriate team"""
+        if is_home:
+            self.home_shots_on_target += 1
+        else:
+            self.away_shots_on_target += 1
+
+    def generate_match_stats(self):
+        """Generate comprehensive match statistics"""
+        home_player_stats = self.generate_player_stats(self.home_team)
+        away_player_stats = self.generate_player_stats(self.away_team)
+        
+        stats = {
+            'possession': {
+                'home': round(self.home_possession, 1),
+                'away': round(self.away_possession, 1)
+            },
+            'shots': {
+                'home': self.home_shots,
+                'away': self.away_shots
+            },
+            'shots_on_target': {
+                'home': self.home_shots_on_target,
+                'away': self.away_shots_on_target
+            },
+            'fouls': {
+                'home': self.home_fouls,
+                'away': self.away_fouls
+            },
+            'corners': {
+                'home': self.home_corners,
+                'away': self.away_corners
+            },
+            'player_stats': {
+                'home': home_player_stats,
+                'away': away_player_stats
+            }
+        }
+        return stats
+
+    def generate_player_stats(self, team):
+        """Generate individual player statistics"""
+        player_stats = {}
+        for player in team.players:
+            player_stats[player.name] = {
+                'position': player.position,
+                'goals': player.match_goals,
+                'assists': player.match_assists,
+                'shots': player.match_shots,
+                'shots_on_target': player.match_shots_on_target,
+                'passes': player.match_passes,
+                'pass_completion': round(player.match_passes_completed / max(1, player.match_passes) * 100, 1),
+                'tackles': player.match_tackles,
+                'tackles_won': player.match_tackles_won,
+                'distance': round(player.match_distance, 1),
+                'fouls': player.match_fouls,
+                'yellow_card': player.match_yellow_card,
+                'red_card': player.match_red_card,
+                'rating': round(player.calculate_match_rating(), 1)
+            }
+        return player_stats

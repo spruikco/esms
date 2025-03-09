@@ -1,29 +1,13 @@
-blu
-N
-
-GK M_Davis
-DFL F_Clark
-DFC R_Rodriguez
-DFC H_Lewis
-DFR J_Walker
-MFL B_King
-MFC S_Allen
-MFR D_Wright
-AMC G_Lopez
-FWL C_Scott
-FWR T_Hill
-
-GK W_Edwards
-DFC L_Parker
-MFC V_Green
-DFL N_Adams
-AMC O_Collins
-FWR O_Collins
-FWL N_Adams
-
-PK: T_Hill
-
-TACTIC D IF MIN >= 70, SCORE > 0
-SUB S_Allen V_Green MFC IF MIN = 65
-SUB H_Lewis L_Parker DFC IF MIN = 65
-SUB T_Hill O_Collins FWR IF MIN = 75, SCORE > 0
+[Barcelona FC]
+[P]
+GK: Marc-Andre ter Stegen
+LB: Jordi Alba
+CB: Ronald Araujo
+CB: Andreas Christensen
+RB: Jules Kounde
+DM: Sergio Busquets
+CM: Frenkie de Jong
+CM: Pedri
+LW: Ansu Fati
+RW: Ousmane Dembele
+ST: Robert Lewandowski

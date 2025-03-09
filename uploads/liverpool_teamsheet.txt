@@ -1,0 +1,13 @@
+[Liverpool FC]
+[N]
+GK: Alisson Becker
+LB: Andrew Robertson
+CB: Virgil van Dijk
+CB: Ibrahima Konate
+RB: Trent Alexander-Arnold
+DM: Fabinho
+CM: Thiago Alcantara
+CM: Jordan Henderson
+LW: Luis Diaz
+RW: Mohamed Salah
+ST: Darwin Nunez

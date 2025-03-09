@@ -1,0 +1,19 @@
+[Bayern Munich]
+Manuel Neuer, GK, 10, 12, 13, 16, 5, 5, 8, 19, 18
+Alphonso Davies, LB, 19, 15, 15, 13, 11, 13, 11, 5, 13
+Dayot Upamecano, CB, 14, 14, 11, 11, 7, 16, 16, 5, 15
+Matthijs de Ligt, CB, 12, 14, 12, 12, 9, 17, 17, 5, 16
+Benjamin Pavard, RB, 13, 13, 12, 13, 9, 15, 14, 5, 14
+Joshua Kimmich, DM, 13, 15, 16, 17, 12, 15, 13, 5, 16
+Leon Goretzka, CM, 14, 16, 14, 15, 14, 13, 15, 5, 14
+Thomas Muller, AM, 13, 15, 15, 15, 15, 10, 13, 5, 16
+Leroy Sane, LW, 18, 14, 16, 14, 15, 8, 10, 5, 13
+Serge Gnabry, RW, 17, 14, 15, 14, 16, 9, 12, 5, 13
+Sadio Mane, ST, 17, 15, 16, 13, 16, 10, 13, 5, 15
+Kingsley Coman, LW, 18, 14, 15, 13, 14, 8, 11, 5, 12
+Jamal Musiala, AM, 16, 13, 17, 16, 14, 9, 10, 5, 14
+Marcel Sabitzer, CM, 13, 14, 14, 15, 13, 12, 12, 5, 13
+Ryan Gravenberch, CM, 14, 15, 15, 14, 12, 13, 13, 5, 13
+Lucas Hernandez, CB, 13, 14, 11, 12, 8, 15, 14, 5, 14
+Noussair Mazraoui, RB, 15, 13, 13, 13, 8, 14, 12, 5, 13
+Sven Ulreich, GK, 9, 10, 8, 10, 5, 5, 7, 14, 13
