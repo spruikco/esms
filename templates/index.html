@@ -1,55 +1,88 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>ESMS Match Simulator</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <div class="container">
-        <h1>ESMS Match Simulator</h1>
-        <p>Upload team files to simulate a soccer match using the ESMS engine.</p>
+{% extends "base.html" %}
+
+{% block title %}ESMS - Enhanced Soccer Match Simulator{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="jumbotron bg-light p-5 rounded">
+        <h1 class="display-4">Enhanced Soccer Match Simulator</h1>
+        <p class="lead">A realistic soccer match simulation engine with tactical depth and detailed player attributes</p>
         
-        <form action="{{ url_for('simulate') }}" method="post" enctype="multipart/form-data">
-            <div class="team-section">
-                <h2>Home Team</h2>
-                <div class="form-group">
-                    <label for="home_teamsheet">Teamsheet:</label>
-                    <input type="file" name="home_teamsheet" id="home_teamsheet" required>
-                    <small>Upload the home team's teamsheet file</small>
+        {% if message %}
+            <div class="alert alert-info">{{ message }}</div>
+        {% endif %}
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Manual Match Simulation</h4>
                 </div>
-                
-                <div class="form-group">
-                    <label for="home_roster">Roster:</label>
-                    <input type="file" name="home_roster" id="home_roster" required>
-                    <small>Upload the home team's roster file</small>
+                <div class="card-body">
+                    <form action="{{ url_for('simulate') }}" method="post" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="home_teamsheet" class="form-label">Home Team Teamsheet:</label>
+                            <input type="file" class="form-control" id="home_teamsheet" name="home_teamsheet" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="away_teamsheet" class="form-label">Away Team Teamsheet:</label>
+                            <input type="file" class="form-control" id="away_teamsheet" name="away_teamsheet" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="home_roster" class="form-label">Home Team Roster:</label>
+                            <input type="file" class="form-control" id="home_roster" name="home_roster" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="away_roster" class="form-label">Away Team Roster:</label>
+                            <input type="file" class="form-control" id="away_roster" name="away_roster" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Simulate Match</button>
+                    </form>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('sample') }}" class="btn btn-success">Run Sample Match</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4>Database Match System</h4>
+                </div>
+                <div class="card-body">
+                    <p>Create teams, manage players, schedule matches, and run simulations using the database-backed system.</p>
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('teams') }}" class="btn btn-info mb-2">Manage Teams</a>
+                        <a href="{{ url_for('players') }}" class="btn btn-info mb-2">Manage Players</a>
+                        <a href="{{ url_for('schedule') }}" class="btn btn-info mb-2">Match Schedule</a>
+                        <a href="{{ url_for('results') }}" class="btn btn-info">Match Results</a>
+                    </div>
                 </div>
             </div>
             
-            <div class="team-section">
-                <h2>Away Team</h2>
-                <div class="form-group">
-                    <label for="away_teamsheet">Teamsheet:</label>
-                    <input type="file" name="away_teamsheet" id="away_teamsheet" required>
-                    <small>Upload the away team's teamsheet file</small>
+            <div class="card">
+                <div class="card-header">
+                    <h4>Recent Matches</h4>
                 </div>
-                
-                <div class="form-group">
-                    <label for="away_roster">Roster:</label>
-                    <input type="file" name="away_roster" id="away_roster" required>
-                    <small>Upload the away team's roster file</small>
+                <div class="card-body">
+                    {% set matches = matches|default([]) %}
+                    {% if matches %}
+                        <ul class="list-group">
+                            {% for match in matches %}
+                                <li class="list-group-item">
+                                    {{ match.scheduled_time.strftime('%Y-%m-%d') }}:
+                                    {{ match.home_team.name }} {{ match.home_score }} - {{ match.away_score }} {{ match.away_team.name }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>No recent matches found. Start simulating matches to see results here.</p>
+                    {% endif %}
                 </div>
             </div>
-            
-            <div class="form-actions">
-                <button type="submit" class="btn">Simulate Match</button>
-            </div>
-        </form>
-        
-        <div class="sample-section">
-            <h2>Don't have team files?</h2>
-            <p>Try a sample match with pre-loaded teams.</p>
-            <a href="/sample" class="btn sample-btn">Run Sample Match</a>
         </div>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}

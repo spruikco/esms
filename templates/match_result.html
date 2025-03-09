@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}Match Result - {{ match.home_team.name }} vs {{ match.away_team.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="text-center mb-4">
+        <h1>Match Result</h1>
+        <div class="score-container">
+            <div class="d-flex justify-content-center align-items-center">
+                <div class="team-name">
+                    <h2>{{ result.home_team.name }}</h2>
+                </div>
+                <div class="score mx-4">
+                    <span class="score-number display-4 text-primary">{{ result.home_score }}</span>
+                    <span class="score-divider display-4 text-muted">-</span>
+                    <span class="score-number display-4 text-danger">{{ result.away_score }}</span>
+                </div>
+                <div class="team-name">
+                    <h2>{{ result.away_team.name }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3>Match Events</h3>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        {% for event in result.events %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker">
+                                {% if event.type == 'goal' %}⚽{% endif %}
+                                {% if event.type == 'yellow_card' %}🟨{% endif %}
+                                {% if event.type == 'red_card' %}🟥{% endif %}
+                                {% if event.type == 'save' %}🧤{% endif %}
+                                {% if event.type == 'miss' %}❌{% endif %}
+                                {% if event.type == 'foul' %}🥊{% endif %}
+                                {% if event.type == 'kickoff' %}🏁{% endif %}
+                                {% if event.type == 'halftime' %}⏱️{% endif %}
+                                {% if event.type == 'fulltime' %}🏁{% endif %}
+                            </div>
+                            <div class="timeline-content">
+                                <span class="badge bg-secondary">{{ event.minute }}'</span>
+                                {{ event.description }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3>Match Statistics</h3>
+                </div>
+                <div class="card-body">
+                    <div class="stat-row">
+                        <div class="stat-label">Possession</div>
+                        <div class="stat-bar">
+                            <div class="progress">
+                                <div class="progress-bar bg-primary" role="progressbar" style="width: {{ result.statistics.possession.home }}%;" aria-valuenow="{{ result.statistics.possession.home }}" aria-valuemin="0" aria-valuemax="100">{{ result.statistics.possession.home }}%</div>
+                                <div class="progress-bar bg-danger" role="progressbar" style="width: {{ result.statistics.possession.away }}%;" aria-valuenow="{{ result.statistics.possession.away }}" aria-valuemin="0" aria-valuemax="100">{{ result.statistics.possession.away }}%</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-row mt-3">
+                        <div class="d-flex justify-content-between">
+                            <div class="text-primary text-center">{{ result.statistics.shots.home }}</div>
+                            <div>Shots</div>
+                            <div class="text-danger text-center">{{ result.statistics.shots.away }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-row mt-2">
+                        <div class="d-flex justify-content-between">
+                            <div class="text-primary text-center">{{ result.statistics.shots_on_target.home }}</div>
+                            <div>On Target</div>
+                            <div class="text-danger text-center">{{ result.statistics.shots_on_target.away }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-row mt-2">
+                        <div class="d-flex justify-content-between">
+                            <div class="text-primary text-center">{{ result.statistics.fouls.home }}</div>
+                            <div>Fouls</div>
+                            <div class="text-danger text-center">{{ result.statistics.fouls.away }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-row mt-2">
+                        <div class="d-flex justify-content-between">
+                            <div class="text-primary text-center">{{ result.statistics.corners.home }}</div>
+                            <div>Corners</div>
+                            <div class="text-danger text-center">{{ result.statistics.corners.away }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3>{{ result.home_team.name }} Player Stats</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Player</th>
+                                    <th>Pos</th>
+                                    <th>Rating</th>
+                                    <th>Goals</th>
+                                    <th>Assists</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for player_name, stats in result.statistics.player_stats.home.items() %}
+                                <tr>
+                                    <td>{{ player_name }}</td>
+                                    <td>{{ stats.position }}</td>
+                                    <td>{{ stats.rating }}</td>
+                                    <td>{{ stats.goals }}</td>
+                                    <td>{{ stats.assists }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3>{{ result.away_team.name }} Player Stats</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Player</th>
+                                    <th>Pos</th>
+                                    <th>Rating</th>
+                                    <th>Goals</th>
+                                    <th>Assists</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for player_name, stats in result.statistics.player_stats.away.items() %}
+                                <tr>
+                                    <td>{{ player_name }}</td>
+                                    <td>{{ stats.position }}</td>
+                                    <td>{{ stats.rating }}</td>
+                                    <td>{{ stats.goals }}</td>
+                                    <td>{{ stats.assists }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="text-center mt-4 mb-5">
+        <a href="{{ url_for('match_detail', match_id=match.id) }}" class="btn btn-secondary mx-2">Match Details</a>
+        <a href="{{ url_for('schedule') }}" class="btn btn-primary mx-2">Back to Schedule</a>
+        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary mx-2">Home</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block head %}
+<style>
+.score-container {
+    margin: 30px 0;
+}
+
+.score-number {
+    font-weight: bold;
+}
+
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 15px;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -20px;
+    top: 0;
+    height: 100%;
+    width: 2px;
+    background-color: #ddd;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -30px;
+    width: 20px;
+    height: 20px;
+    text-align: center;
+    line-height: 20px;
+    border-radius: 50%;
+    background-color: white;
+    border: 2px solid #ddd;
+}
+
+.timeline-content {
+    padding: 5px 10px;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+    margin-bottom: 10px;
+}
+</style>
+{% endblock %}

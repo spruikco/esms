@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Match Schedule{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Match Schedule</h1>
+        <a href="{{ url_for('match_new') }}" class="btn btn-primary">Schedule New Match</a>
+    </div>
+    
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-success" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    {% if matches %}
+        <div class="card">
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Home Team</th>
+                            <th>Away Team</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for match in matches %}
+                        <tr>
+                            <td>{{ match.scheduled_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                <a href="{{ url_for('team_detail', team_id=match.home_team_id) }}">
+                                    {{ match.home_team.name }}
+                                </a>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('team_detail', team_id=match.away_team_id) }}">
+                                    {{ match.away_team.name }}
+                                </a>
+                            </td>
+                            <td>
+                                {% if match.completed %}
+                                    <span class="badge bg-success">Completed</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Upcoming</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{{ url_for('match_detail', match_id=match.id) }}" class="btn btn-sm btn-info">
+                                        Details
+                                    </a>
+                                    
+                                    {% if not match.completed %}
+                                        <a href="{{ url_for('submit_lineup', match_id=match.id) }}" class="btn btn-sm btn-primary">
+                                            Submit Lineup
+                                        </a>
+                                        <a href="{{ url_for('run_match', match_id=match.id) }}" class="btn btn-sm btn-success">
+                                            Simulate
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            No matches scheduled. Click "Schedule New Match" to create one.
+        </div>
+    {% endif %}
+    
+    <div class="mt-4">
+        <a href="{{ url_for('results') }}" class="btn btn-secondary">View Past Results</a>
+        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Back to Home</a>
+    </div>
+</div>
+{% endblock %}

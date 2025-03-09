@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Teams - ESMS{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Teams</h1>
+        <a href="{{ url_for('team_new') }}" class="btn btn-primary">Create New Team</a>
+    </div>
+    
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-success" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    {% if teams %}
+        <div class="row">
+            {% for team in teams %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">{{ team.name }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Formation:</strong> {{ team.formation }}</p>
+                        <p><strong>Tactic:</strong> 
+                            {% if team.tactic == 'N' %}Normal
+                            {% elif team.tactic == 'A' %}Attacking
+                            {% elif team.tactic == 'D' %}Defensive
+                            {% elif team.tactic == 'P' %}Possession
+                            {% elif team.tactic == 'C' %}Counter
+                            {% else %}{{ team.tactic }}
+                            {% endif %}
+                        </p>
+                        <p><strong>Players:</strong> {{ team.players|length }}</p>
+                    </div>
+                    <div class="card-footer">
+                        <a href="{{ url_for('team_detail', team_id=team.id) }}" class="btn btn-info btn-sm">View Details</a>
+                        <a href="{{ url_for('team_formation', team_id=team.id) }}" class="btn btn-success btn-sm">Formation</a>
+                        <a href="{{ url_for('team_edit', team_id=team.id) }}" class="btn btn-warning btn-sm">Edit</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            No teams found. Click "Create New Team" to get started.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

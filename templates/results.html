@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Match Results - ESMS{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Match Results</h1>
+    
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-success" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    {% if matches %}
+        <div class="card">
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Home Team</th>
+                            <th>Score</th>
+                            <th>Away Team</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for match in matches %}
+                        <tr>
+                            <td>{{ match.scheduled_time.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                <a href="{{ url_for('team_detail', team_id=match.home_team_id) }}">
+                                    {{ match.home_team.name }}
+                                </a>
+                            </td>
+                            <td class="text-center">
+                                <strong>{{ match.home_score }} - {{ match.away_score }}</strong>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('team_detail', team_id=match.away_team_id) }}">
+                                    {{ match.away_team.name }}
+                                </a>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('match_detail', match_id=match.id) }}" class="btn btn-sm btn-info">
+                                    Match Details
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            No match results found. Completed matches will appear here.
+        </div>
+    {% endif %}
+    
+    <div class="mt-4">
+        <a href="{{ url_for('schedule') }}" class="btn btn-primary">View Upcoming Matches</a>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Home</a>
+    </div>
+</div>
+{% endblock %}

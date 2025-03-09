@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Players - ESMS{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Players</h1>
+        <a href="{{ url_for('player_new') }}" class="btn btn-primary">Create New Player</a>
+    </div>
+    
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-success" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    {% if players %}
+        <div class="card">
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Attributes</th>
+                            <th>Teams</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for player in players %}
+                        <tr>
+                            <td>{{ player.name }}</td>
+                            <td>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <small>Speed: {{ player.speed }}</small>
+                                        <div class="progress mb-1" style="height: 5px;">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ player.speed * 5 }}%;"></div>
+                                        </div>
+                                        
+                                        <small>Stamina: {{ player.stamina }}</small>
+                                        <div class="progress mb-1" style="height: 5px;">
+                                            <div class="progress-bar bg-info" role="progressbar" style="width: {{ player.stamina * 5 }}%;"></div>
+                                        </div>
+                                        
+                                        <small>Technique: {{ player.technique }}</small>
+                                        <div class="progress mb-1" style="height: 5px;">
+                                            <div class="progress-bar bg-warning" role="progressbar" style="width: {{ player.technique * 5 }}%;"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <small>Shooting: {{ player.shooting }}</small>
+                                        <div class="progress mb-1" style="height: 5px;">
+                                            <div class="progress-bar bg-danger" role="progressbar" style="width: {{ player.shooting * 5 }}%;"></div>
+                                        </div>
+                                        
+                                        <small>Passing: {{ player.passing }}</small>
+                                        <div class="progress mb-1" style="height: 5px;">
+                                            <div class="progress-bar" role="progressbar" style="width: {{ player.passing * 5 }}%;"></div>
+                                        </div>
+                                        
+                                        <small>Tackling: {{ player.tackling }}</small>
+                                        <div class="progress mb-1" style="height: 5px;">
+                                            <div class="progress-bar bg-secondary" role="progressbar" style="width: {{ player.tackling * 5 }}%;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if player.team_assignments %}
+                                    <ul class="list-unstyled">
+                                    {% for assignment in player.team_assignments %}
+                                        <li>
+                                            <a href="{{ url_for('team_detail', team_id=assignment.team_id) }}">
+                                                {{ assignment.team.name }} ({{ assignment.position }})
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <span class="text-muted">Not assigned to any team</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="#" class="btn btn-sm btn-info">View</a>
+                                    <a href="#" class="btn btn-sm btn-warning">Edit</a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            No players found. Click "Create New Player" to add players.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

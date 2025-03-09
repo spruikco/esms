@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}{{ team.name }} - Team Details{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <h1>{{ team.name }}</h1>
+            
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-success" role="alert">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Team Information</h4>
+                    <a href="{{ url_for('team_edit', team_id=team.id) }}" class="btn btn-sm btn-warning">Edit</a>
+                </div>
+                <div class="card-body">
+                    <p><strong>Formation:</strong> {{ team.formation }}</p>
+                    <p><strong>Tactic:</strong> 
+                        {% if team.tactic == 'N' %}Normal
+                        {% elif team.tactic == 'A' %}Attacking
+                        {% elif team.tactic == 'D' %}Defensive
+                        {% elif team.tactic == 'P' %}Possession
+                        {% elif team.tactic == 'C' %}Counter
+                        {% else %}{{ team.tactic }}
+                        {% endif %}
+                    </p>
+                    <p><strong>Created:</strong> {{ team.created_at.strftime('%Y-%m-%d') }}</p>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Team Roster</h4>
+                    <a href="{{ url_for('team_add_player', team_id=team.id) }}" class="btn btn-sm btn-success">Add Player</a>
+                </div>
+                <div class="card-body">
+                    {% if team.players %}
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Pos</th>
+                                    <th>Age</th>
+                                    <th>Nationality</th>
+                                    <th>Attributes</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tp in team.players %}
+                                {% set player = tp.player %}
+                                <tr>
+                                    <td>{{ player.name }}</td>
+                                    <td>{{ tp.position }}</td>
+                                    <td>{{ player.age }}</td>
+                                    <td>
+                                        {% if player.nationality %}
+                                            <span class="flag-icon">{{ get_flag_emoji(player.nationality) }}</span> 
+                                            {{ player.nationality }}
+                                        {% else %}
+                                            <span class="text-muted">Unknown</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="progress mb-1" style="height: 10px;">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ player.speed * 5 }}%;" title="Speed: {{ player.speed }}"></div>
+                                        </div>
+                                        <div class="progress mb-1" style="height: 10px;">
+                                            <div class="progress-bar bg-info" role="progressbar" style="width: {{ player.technique * 5 }}%;" title="Technique: {{ player.technique }}"></div>
+                                        </div>
+                                        <div class="progress mb-1" style="height: 10px;">
+                                            <div class="progress-bar bg-warning" role="progressbar" style="width: {{ player.shooting * 5 }}%;" title="Shooting: {{ player.shooting }}"></div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('player_detail', player_id=player.id) }}" class="btn btn-sm btn-info">Details</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="alert alert-info">
+                            No players in this team yet. Click "Add Player" to add players.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4>Actions</h4>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('team_formation', team_id=team.id) }}" class="btn btn-primary">Edit Formation</a>
+                        <a href="{{ url_for('team_add_player', team_id=team.id) }}" class="btn btn-success">Add Player</a>
+                        <a href="{{ url_for('team_edit', team_id=team.id) }}" class="btn btn-warning">Edit Team</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4>Recent Matches</h4>
+                </div>
+                <div class="card-body">
+                    {% set home_matches = team.home_matches|selectattr('completed', 'eq', true)|list %}
+                    {% set away_matches = team.away_matches|selectattr('completed', 'eq', true)|list %}
+                    {% set all_matches = (home_matches + away_matches)|sort(attribute='scheduled_time', reverse=true) %}
+                    
+                    {% if all_matches %}
+                        <ul class="list-group">
+                            {% for match in all_matches[:5] %}
+                                <li class="list-group-item">
+                                    {{ match.scheduled_time.strftime('%Y-%m-%d') }}:
+                                    {% if match.home_team_id == team.id %}
+                                        <strong>{{ team.name }}</strong> {{ match.home_score }} - {{ match.away_score }} {{ match.away_team.name }}
+                                    {% else %}
+                                        {{ match.home_team.name }} {{ match.home_score }} - {{ match.away_score }} <strong>{{ team.name }}</strong>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>No recent matches found.</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h4>Upcoming Matches</h4>
+                </div>
+                <div class="card-body">
+                    {% set home_upcoming = team.home_matches|selectattr('completed', 'eq', false)|list %}
+                    {% set away_upcoming = team.away_matches|selectattr('completed', 'eq', false)|list %}
+                    {% set all_upcoming = (home_upcoming + away_upcoming)|sort(attribute='scheduled_time') %}
+                    
+                    {% if all_upcoming %}
+                        <ul class="list-group">
+                            {% for match in all_upcoming[:5] %}
+                                <li class="list-group-item">
+                                    {{ match.scheduled_time.strftime('%Y-%m-%d %H:%M') }}:
+                                    {% if match.home_team_id == team.id %}
+                                        <strong>{{ team.name }}</strong> vs {{ match.away_team.name }}
+                                    {% else %}
+                                        {{ match.home_team.name }} vs <strong>{{ team.name }}</strong>
+                                    {% endif %}
+                                    
+                                    <div class="mt-2">
+                                        <a href="{{ url_for('match_detail', match_id=match.id) }}" class="btn btn-sm btn-info">Details</a>
+                                        <a href="{{ url_for('submit_lineup', match_id=match.id) }}" class="btn btn-sm btn-primary">Lineup</a>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>No upcoming matches scheduled.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-4">
+        <a href="{{ url_for('teams') }}" class="btn btn-secondary">Back to Teams</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block head %}
+<style>
+.flag-icon {
+    font-size: 1.2em;
+    margin-right: 5px;
+}
+</style>
+{% endblock %}

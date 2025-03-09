@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}{% if team %}Edit{% else %}Create{% endif %} Team - ESMS{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>{% if team %}Edit{% else %}Create{% endif %} Team</h1>
+    
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                <div class="form-group mb-3">
+                    <label for="name">Team Name</label>
+                    <input type="text" class="form-control" id="name" name="name" value="{{ team.name if team else '' }}" required>
+                </div>
+                
+                <div class="form-group mb-3">
+                    <label for="tactic">Team Tactic</label>
+                    <select class="form-control" id="tactic" name="tactic">
+                        <option value="N" {% if team and team.tactic == 'N' %}selected{% endif %}>Normal</option>
+                        <option value="A" {% if team and team.tactic == 'A' %}selected{% endif %}>Attacking</option>
+                        <option value="D" {% if team and team.tactic == 'D' %}selected{% endif %}>Defensive</option>
+                        <option value="P" {% if team and team.tactic == 'P' %}selected{% endif %}>Possession</option>
+                        <option value="C" {% if team and team.tactic == 'C' %}selected{% endif %}>Counter</option>
+                    </select>
+                </div>
+                
+                <div class="form-group mb-3">
+                    <label for="formation">Formation</label>
+                    <select class="form-control" id="formation" name="formation">
+                        <option value="4-4-2" {% if team and team.formation == '4-4-2' %}selected{% endif %}>4-4-2</option>
+                        <option value="4-3-3" {% if team and team.formation == '4-3-3' %}selected{% endif %}>4-3-3</option>
+                        <option value="3-5-2" {% if team and team.formation == '3-5-2' %}selected{% endif %}>3-5-2</option>
+                        <option value="5-3-2" {% if team and team.formation == '5-3-2' %}selected{% endif %}>5-3-2</option>
+                        <option value="4-2-3-1" {% if team and team.formation == '4-2-3-1' %}selected{% endif %}>4-2-3-1</option>
+                    </select>
+                </div>
+                
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">Save Team</button>
+                    <a href="{{ url_for('teams') }}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
