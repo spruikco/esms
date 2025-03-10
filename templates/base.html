@@ -1,3 +1,4 @@
+<!-- templates/base.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -20,32 +21,32 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">ESMS</a>
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">ESMS</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('index') }}">Home</a>
+                        <a class="nav-link" href="{{ url_for('main.index') }}">Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('teams') }}">Teams</a>
+                        <a class="nav-link" href="{{ url_for('team.list_teams') }}">Teams</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('players') }}">Players</a>
+                        <a class="nav-link" href="{{ url_for('player.list_players') }}">Players</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('schedule') }}">Schedule</a>
+                        <a class="nav-link" href="{{ url_for('match.list_matches') }}">Schedule</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('results') }}">Results</a>
+                        <a class="nav-link" href="{{ url_for('match.list_results') }}">Results</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('league') }}">League</a>
+                        <a class="nav-link" href="{{ url_for('main.league') }}">League</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('sample') }}">Sample Match</a>
+                        <a class="nav-link" href="{{ url_for('match.sample') }}">Sample Match</a>
                     </li>
                 </ul>
             </div>

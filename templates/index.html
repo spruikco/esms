@@ -20,7 +20,7 @@
                     <h4>Manual Match Simulation</h4>
                 </div>
                 <div class="card-body">
-                    <form action="{{ url_for('simulate') }}" method="post" enctype="multipart/form-data">
+                    <form action="{{ url_for('match.simulate') }}" method="post" enctype="multipart/form-data">
                         <div class="mb-3">
                             <label for="home_teamsheet" class="form-label">Home Team Teamsheet:</label>
                             <input type="file" class="form-control" id="home_teamsheet" name="home_teamsheet" required>
@@ -41,7 +41,7 @@
                     </form>
                 </div>
                 <div class="card-footer">
-                    <a href="{{ url_for('sample') }}" class="btn btn-success">Run Sample Match</a>
+                    <a href="{{ url_for('match.sample') }}" class="btn btn-success">Run Sample Match</a>
                 </div>
             </div>
         </div>
@@ -54,10 +54,10 @@
                 <div class="card-body">
                     <p>Create teams, manage players, schedule matches, and run simulations using the database-backed system.</p>
                     <div class="d-grid gap-2">
-                        <a href="{{ url_for('teams') }}" class="btn btn-info mb-2">Manage Teams</a>
-                        <a href="{{ url_for('players') }}" class="btn btn-info mb-2">Manage Players</a>
-                        <a href="{{ url_for('schedule') }}" class="btn btn-info mb-2">Match Schedule</a>
-                        <a href="{{ url_for('results') }}" class="btn btn-info">Match Results</a>
+                        <a href="{{ url_for('team.list_teams') }}" class="btn btn-info mb-2">Manage Teams</a>
+                        <a href="{{ url_for('player.list_players') }}" class="btn btn-info mb-2">Manage Players</a>
+                        <a href="{{ url_for('match.schedule') }}" class="btn btn-info mb-2">Match Schedule</a>
+                        <a href="{{ url_for('match.results') }}" class="btn btn-info">Match Results</a>
                     </div>
                 </div>
             </div>
