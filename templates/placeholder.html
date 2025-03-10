@@ -1,0 +1,11 @@
+<!-- templates/placeholder.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>Coming Soon</h1>
+    <p>{{ message }}</p>
+    <p>This functionality is currently being implemented.</p>
+    <a href="{{ url_for('main.index') }}" class="btn btn-primary">Back to Home</a>
+</div>
+{% endblock %}

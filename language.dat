@@ -1,216 +1,33 @@
-# Enhanced commentary templates
+| A scoring chance
+| 1st %s - game minute
+| 2nd %s - team abbrevation
+| 3rd %s - player name
 
-[goal]
-GOAL! {player} scores in the {minute}th minute!
-{player} finds the back of the net! What a strike!
-{player} scores! The goalkeeper had no chance!
-Fantastic finish by {player}!
-{player} smashes it into the net!
-Brilliant goal by {player}!
-What a goal from {player}!
-{player} slots it home coolly!
-Clinical finish from {player}!
-{player} with a moment of magic to score!
+[CHANCE] {\nMin. %s :(%s) %s with the dribble}
+[CHANCE] {\nMin. %s :(%s) %s takes possesion}
+[CHANCE] {\nMin. %s :(%s) %s cuts through the defense}
+[CHANCE] {\nMin. %s :(%s) %s finds a hole in the defense}
 
-[goal_with_assist]
-GOAL! {player} scores after a brilliant assist from {assist}!
-{player} finishes off a lovely move started by {assist}!
-Great vision from {assist} to set up {player} for the goal!
-{player} taps it in after excellent work from {assist}!
-{assist} with a perfect pass for {player} to finish!
-{player} converts after a pinpoint cross from {assist}!
-Magnificent team goal! {assist} with the setup, {player} with the finish!
-{player} gets on the end of {assist}'s delivery to score!
-{assist} finds {player} who makes no mistake with the finish!
-Lovely combination between {assist} and {player} for the goal!
+| A shot to goal
+| 1st %s - player name
 
-[early_game]
-An early goal from {player} in the {minute}th minute!
-{player} gives his team an early lead!
-What a start! {player} scores early on!
-{player} wastes no time in getting on the scoresheet!
-Early breakthrough for {player}'s team!
+[SHOT] {\n          ...  A powerful shot by %s !}
+[SHOT] {\n          ...  %s tries to beat the keeper !}
+[SHOT] {\n          ...  %s with the strike !}
 
-[late_game]
-A late goal from {player} in the {minute}th minute!
-{player} might have just won it with that late strike!
-Dramatic late goal from {player}!
-{player} scores what could be a crucial goal at this late stage!
-{player} with a goal that could change everything in the dying minutes!
+| A goal was scored
 
-[equalizer]
-EQUALIZER! {player} levels the score!
-{player} brings the teams level with that goal!
-Game on! {player} with the equalizing goal!
-{player} ties the game with a crucial strike!
-All square now thanks to {player}'s goal!
+[GOAL] {\n          ...  GOAL !!}
 
-[go_ahead]
-{player} puts his team in front with that goal!
-{player} gives his team the lead!
-Breakthrough goal from {player} to take the lead!
-{player} scores what could be the winning goal!
-{player} delivers when it matters most to take the lead!
+| A save (by the goalkeeper)
+| 1st %s - goalkeeper name
 
-[extend_lead]
-{player} extends the lead further!
-Another goal, this time from {player}!
-{player} puts the game beyond doubt with that goal!
-{player} adds to the tally!
-{player} with a goal to seal the victory!
+[SAVE] {\n          ...  Saved by %s}
+[SAVE] {\n          ...  %s gathers it comfortably}
+[SAVE] {\n          ...  %s makes a comfortable save}
 
-[save]
-Great save by {goalkeeper} to deny {player}!
-{goalkeeper} keeps it out with a fantastic stop!
-Brilliant reflexes from {goalkeeper} to stop {player}'s effort!
-{player} is denied by an excellent save from {goalkeeper}!
-{goalkeeper} gets down well to keep out {player}'s shot!
-Magnificent goalkeeping from {goalkeeper}!
-{player} can't believe {goalkeeper} kept that one out!
-Superb save! {goalkeeper} shows his quality!
-{goalkeeper} with a save that keeps his team in the game!
-What a stop by {goalkeeper} from {player}'s attempt!
+| Various statistic and informational lines
 
-[miss]
-{player} puts the shot wide of the target!
-Close but not close enough from {player}!
-{player} should have done better with that chance!
-Off target from {player}!
-{player} fails to hit the target with that attempt!
-{player} blazes the shot over the bar!
-{player} misses a golden opportunity!
-{player} can't keep the shot down!
-{player} drags his effort wide!
-{player} sends the ball into the stands!
-
-[cross]
-{player} delivers a dangerous cross towards {target}!
-Great ball in from {player} looking for {target}!
-{player} whips in a cross for {target}!
-{player} with an inviting delivery towards {target}!
-{player} sends in a teasing cross for {target} to attack!
-{player} bends in a beautiful cross towards {target}!
-Excellent delivery from {player} aiming for {target}!
-{player} with a pinpoint cross for {target}!
-{target} is the target as {player} delivers the cross!
-{player} floats a cross into the area for {target}!
-
-[failed_cross]
-{player}'s cross is intercepted by {defender}!
-{defender} clears the cross from {player}!
-Poor delivery from {player}, easily dealt with by {defender}!
-{player}'s cross doesn't beat the first man, {defender}!
-{defender} heads away {player}'s cross!
-{player} overhits the cross and {defender} clears!
-{defender} reads {player}'s cross well and cuts it out!
-{player}'s delivery is too close to {defender} who clears!
-{defender} makes an important interception from {player}'s cross!
-{player}'s cross is blocked by {defender}!
-
-[through_ball]
-Brilliant through ball from {player} to {target}!
-{player} threads a pass through to {target}!
-{player} with a defense-splitting pass for {target}!
-Excellent vision from {player} to find {target}!
-{player} picks out {target} with a perfect through ball!
-{player} slides a pass between defenders for {target} to run onto!
-{target} is through on goal thanks to {player}'s pass!
-{player} with a delightful ball for {target} to chase!
-{player} unlocks the defense with a pass to {target}!
-Great awareness from {player} to spot {target}'s run!
-
-[failed_through_ball]
-{player}'s through ball is cut out by {defender}!
-{defender} reads {player}'s intentions and intercepts!
-{player} tries to find a teammate but {defender} is alert to the danger!
-{defender} steps in to cut out {player}'s pass!
-{player}'s attempted through ball is blocked by {defender}!
-{defender} makes a crucial interception to stop {player}'s pass!
-{player} overplays the pass and {defender} clears!
-{defender} anticipates {player}'s through ball!
-{player}'s pass is too ambitious and {defender} intercepts!
-{defender} shows good defensive awareness to cut out {player}'s pass!
-
-[dribble]
-{player} dribbles past {defender} with ease!
-Lovely skill from {player} to beat {defender}!
-{player} leaves {defender} trailing with a great piece of skill!
-{defender} can't keep up with {player}'s quick feet!
-{player} shows great control to get past {defender}!
-Brilliant dribbling by {player}, making {defender} look silly!
-{player} glides past {defender} with a silky move!
-{defender} is beaten all ends up by {player}!
-{player} with a wonderful piece of skill to beat {defender}!
-{player} shows his class to dance past {defender}!
-
-[tackle]
-Strong tackle from {defender} to win the ball from {player}!
-{defender} with a crunching challenge on {player}!
-Great defensive work by {defender} to dispossess {player}!
-{defender} times the tackle perfectly to take the ball from {player}!
-{player} is stopped in his tracks by {defender}'s challenge!
-{defender} shows his defensive quality with that tackle on {player}!
-{player} loses out to a firm but fair challenge from {defender}!
-{defender} with a clean tackle to win possession from {player}!
-Excellent tackle by {defender} to stop {player}'s advance!
-{defender} reads the situation well to tackle {player}!
-
-[interception]
-{defender} intercepts the pass from {player}!
-Good anticipation by {defender} to cut out {player}'s pass!
-{defender} reads the play well to intercept {player}'s pass!
-{player}'s pass is too predictable and {defender} steps in!
-{defender} cuts out the intended pass from {player}!
-{defender} shows good awareness to intercept {player}'s ball!
-{player}'s sloppy pass is picked off by {defender}!
-{defender} positions himself well to intercept {player}'s pass!
-{player} gives the ball away and {defender} intercepts!
-Quick thinking from {defender} to step in front of {player}'s pass!
-
-[pass]
-{player} finds {target} with a neat pass!
-Good ball from {player} to {target}!
-{player} keeps possession moving with a pass to {target}!
-{player} picks out {target} with precision!
-{target} receives the ball from {player}!
-Calm and composed pass from {player} to {target}!
-{player} looks up and finds {target} in space!
-{player} switches the play to {target}!
-{target} is found by a measured pass from {player}!
-{player} feeds the ball to {target}!
-
-[foul]
-{player} commits a foul on {victim}!
-Free kick awarded after {player} fouled {victim}!
-{player} brings down {victim} - that's a foul!
-The referee penalizes {player} for a challenge on {victim}!
-{victim} is fouled by {player}!
-{player} catches {victim} late and concedes a free kick!
-{player} with a clumsy challenge on {victim}!
-{victim} goes down under {player}'s challenge!
-{player} doesn't time the tackle right and fouls {victim}!
-{victim} wins a free kick after being fouled by {player}!
-
-[yellow_card]
-YELLOW CARD! {player} is booked for the foul on {victim}!
-{player} goes into the referee's book for that challenge on {victim}!
-{player} receives a yellow card for the foul on {victim}!
-The referee shows {player} a yellow card!
-{player} is cautioned after bringing down {victim}!
-Yellow card for {player} after that rash tackle on {victim}!
-{player} can have no complaints about the yellow card for that foul on {victim}!
-{player} is walking a tightrope now after being booked for the foul on {victim}!
-{victim} stays down and {player} is shown a yellow card!
-The referee reaches for his pocket and shows {player} a yellow card!
-
-[red_card]
-RED CARD! {player} is sent off for the foul on {victim}!
-{player} receives his second yellow and is OFF!
-The referee shows {player} a straight red card!
-{player} is dismissed after a terrible challenge on {victim}!
-Early shower for {player} as he sees red for the foul on {victim}!
-{player} can have no complaints about the red card for that horror tackle on {victim}!
-{player} leaves his team with 10 men after being sent off!
-Disaster for {player}'s team as he's shown a red card!
-The referee has no choice but to send {player} off for that!
-{player} will play no further part in this match after receiving a red card!
+[COMM_KICKOFF]  {\n*************  KICK OFF  *****************}
+[COMM_HALFTIME] {\n*************  HALF TIME  ****************}
+[COMM_FULLTIME] {\n*************  FULL TIME  ****************}
