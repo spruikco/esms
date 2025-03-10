@@ -1,7 +1,27 @@
-# models/match.py
-from extensions import db  # Import the SQLAlchemy instance
+# esms/models/match.py
+from extensions import db
+from datetime import datetime
+
+class Match(db.Model):
+    """Represents a match between two teams"""
+    id = db.Column(db.Integer, primary_key=True)
+    home_team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
+    away_team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
+    scheduled_time = db.Column(db.DateTime, default=datetime.utcnow)
+    completed = db.Column(db.Boolean, default=False)
+    home_score = db.Column(db.Integer, default=0)
+    away_score = db.Column(db.Integer, default=0)
+    
+    # Define relationships using string for class names to avoid circular references
+    home_team = db.relationship('Team', foreign_keys=[home_team_id], backref='home_matches')
+    away_team = db.relationship('Team', foreign_keys=[away_team_id], backref='away_matches')
+    match_events = db.relationship('MatchEvent', backref='match', lazy='dynamic')
+    
+    def __repr__(self):
+        return f"<Match {self.id}>"
 
 class MatchLineup(db.Model):
+    """Represents team lineup for a match"""
     id = db.Column(db.Integer, primary_key=True)
     match_id = db.Column(db.Integer, db.ForeignKey('match.id'), nullable=False)
     team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
@@ -13,9 +33,8 @@ class MatchLineup(db.Model):
     match = db.relationship('Match', backref='lineups')
     team = db.relationship('Team')
 
-# Add the rest of your match-related models here...
-
 class MatchEvent(db.Model):
+    """Represents an event that occurred during a match"""
     id = db.Column(db.Integer, primary_key=True)
     match_id = db.Column(db.Integer, db.ForeignKey('match.id'), nullable=False)
     minute = db.Column(db.Integer, nullable=False)

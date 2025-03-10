@@ -30,6 +30,9 @@ def create_app(config_class=Config):
     with app.app_context():
         from esms.engine import init_engine
         init_engine()
+        
+        # Create all database tables
+        db.create_all()
     
     return app
 
