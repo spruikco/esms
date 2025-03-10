@@ -1,6 +1,7 @@
 # esms/routes/team.py
 from flask import Blueprint, render_template
 
+# Create the Blueprint object
 team_bp = Blueprint('team', __name__)
 
 @team_bp.route('/')
