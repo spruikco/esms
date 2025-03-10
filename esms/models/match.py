@@ -1,4 +1,6 @@
 # models/match.py
+from extensions import db  # Import the SQLAlchemy instance
+
 class MatchLineup(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     match_id = db.Column(db.Integer, db.ForeignKey('match.id'), nullable=False)
@@ -10,6 +12,8 @@ class MatchLineup(db.Model):
     
     match = db.relationship('Match', backref='lineups')
     team = db.relationship('Team')
+
+# Add the rest of your match-related models here...
 
 class MatchEvent(db.Model):
     id = db.Column(db.Integer, primary_key=True)
