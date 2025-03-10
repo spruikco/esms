@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Schedule Match - ESMS{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Schedule New Match</h1>
+    
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                <div class="form-group mb-3">
+                    <label for="home_team_id">Home Team</label>
+                    <select class="form-control" id="home_team_id" name="home_team_id" required>
+                        <option value="">-- Select Home Team --</option>
+                        {% for team in teams %}
+                            <option value="{{ team.id }}">{{ team.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group mb-3">
+                    <label for="away_team_id">Away Team</label>
+                    <select class="form-control" id="away_team_id" name="away_team_id" required>
+                        <option value="">-- Select Away Team --</option>
+                        {% for team in teams %}
+                            <option value="{{ team.id }}">{{ team.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group mb-3">
+                    <label for="scheduled_time">Match Date & Time</label>
+                    <input type="datetime-local" class="form-control" id="scheduled_time" name="scheduled_time" required>
+                </div>
+                
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">Schedule Match</button>
+                    <a href="{{ url_for('schedule') }}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set default date/time to now + 1 day
+    const now = new Date();
+    now.setDate(now.getDate() + 1);
+    
+    // Format: YYYY-MM-DDTHH:MM
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    
+    const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}`;
+    document.getElementById('scheduled_time').value = formattedDate;
+    
+    // Prevent same team selection
+    const homeSelect = document.getElementById('home_team_id');
+    const awaySelect = document.getElementById('away_team_id');
+    
+    homeSelect.addEventListener('change', function() {
+        const selectedValue = this.value;
+        
+        // Enable all options in away select
+        Array.from(awaySelect.options).forEach(option => {
+            option.disabled = false;
+        });
+        
+        // Disable the option that matches home team
+        if (selectedValue) {
+            const matchingOption = awaySelect.querySelector(`option[value="${selectedValue}"]`);
+            if (matchingOption) {
+                matchingOption.disabled = true;
+            }
+            
+            // If current away selection is now disabled, reset it
+            if (awaySelect.value === selectedValue) {
+                awaySelect.value = '';
+            }
+        }
+    });
+    
+    awaySelect.addEventListener('change', function() {
+        const selectedValue = this.value;
+        
+        // Enable all options in home select
+        Array.from(homeSelect.options).forEach(option => {
+            option.disabled = false;
+        });
+        
+        // Disable the option that matches away team
+        if (selectedValue) {
+            const matchingOption = homeSelect.querySelector(`option[value="${selectedValue}"]`);
+            if (matchingOption) {
+                matchingOption.disabled = true;
+            }
+            
+            // If current home selection is now disabled, reset it
+            if (homeSelect.value === selectedValue) {
+                homeSelect.value = '';
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

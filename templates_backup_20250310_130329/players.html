@@ -6,7 +6,7 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>Players</h1>
-        <a href="{{ url_for('player.new') }}" class="btn btn-primary">Create New Player</a>
+        <a href="{{ url_for('player_new') }}" class="btn btn-primary">Create New Player</a>
     </div>
     
     {% with messages = get_flashed_messages() %}
@@ -89,7 +89,7 @@
                                     <ul class="list-unstyled">
                                     {% for assignment in player.team_assignments %}
                                         <li>
-                                            <a href="{{ url_for('team.detail', team_id=assignment.team_id) }}">
+                                            <a href="{{ url_for('team_detail', team_id=assignment.team_id) }}">
                                                 {{ assignment.team.name }} ({{ assignment.position }})
                                             </a>
                                         </li>
@@ -101,8 +101,8 @@
                             </td>
                             <td>
                                 <div class="btn-group">
-                                    <a href="{{ url_for('player.detail', player_id=player.id) }}" class="btn btn-sm btn-info">View</a>
-                                    <a href="{{ url_for('player.edit', player_id=player.id) }}" class="btn btn-sm btn-warning">Edit</a>
+                                    <a href="{{ url_for('player_detail', player_id=player.id) }}" class="btn btn-sm btn-info">View</a>
+                                    <a href="{{ url_for('player_edit', player_id=player.id) }}" class="btn btn-sm btn-warning">Edit</a>
                                 </div>
                             </td>
                         </tr>

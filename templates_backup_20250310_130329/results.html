@@ -34,7 +34,7 @@
                         <tr>
                             <td>{{ match.scheduled_time.strftime('%Y-%m-%d') }}</td>
                             <td>
-                                <a href="{{ url_for('team.detail', team_id=match.home_team_id) }}">
+                                <a href="{{ url_for('team_detail', team_id=match.home_team_id) }}">
                                     {{ match.home_team.name }}
                                 </a>
                             </td>
@@ -42,12 +42,12 @@
                                 <strong>{{ match.home_score }} - {{ match.away_score }}</strong>
                             </td>
                             <td>
-                                <a href="{{ url_for('team.detail', team_id=match.away_team_id) }}">
+                                <a href="{{ url_for('team_detail', team_id=match.away_team_id) }}">
                                     {{ match.away_team.name }}
                                 </a>
                             </td>
                             <td>
-                                <a href="{{ url_for('match.detail', match_id=match.id) }}" class="btn btn-sm btn-info">
+                                <a href="{{ url_for('match_detail', match_id=match.id) }}" class="btn btn-sm btn-info">
                                     Match Details
                                 </a>
                             </td>

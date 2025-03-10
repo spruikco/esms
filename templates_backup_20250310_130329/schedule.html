@@ -6,7 +6,7 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>Match Schedule</h1>
-        <a href="{{ url_for('match.new') }}" class="btn btn-primary">Schedule New Match</a>
+        <a href="{{ url_for('match_new') }}" class="btn btn-primary">Schedule New Match</a>
     </div>
     
     {% with messages = get_flashed_messages() %}
@@ -37,12 +37,12 @@
                         <tr>
                             <td>{{ match.scheduled_time.strftime('%Y-%m-%d %H:%M') }}</td>
                             <td>
-                                <a href="{{ url_for('team.detail', team_id=match.home_team_id) }}">
+                                <a href="{{ url_for('team_detail', team_id=match.home_team_id) }}">
                                     {{ match.home_team.name }}
                                 </a>
                             </td>
                             <td>
-                                <a href="{{ url_for('team.detail', team_id=match.away_team_id) }}">
+                                <a href="{{ url_for('team_detail', team_id=match.away_team_id) }}">
                                     {{ match.away_team.name }}
                                 </a>
                             </td>
@@ -55,7 +55,7 @@
                             </td>
                             <td>
                                 <div class="btn-group">
-                                    <a href="{{ url_for('match.detail', match_id=match.id) }}" class="btn btn-sm btn-info">
+                                    <a href="{{ url_for('match_detail', match_id=match.id) }}" class="btn btn-sm btn-info">
                                         Details
                                     </a>
                                     

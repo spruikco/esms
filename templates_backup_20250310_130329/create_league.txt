@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create League | ESMS League Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .back-link {
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+        
+        .form-section {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            resize: vertical;
+        }
+        
+        .instructions {
+            background-color: #edf8ff;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            margin-bottom: 20px;
+            border-radius: 0 4px 4px 0;
+        }
+        
+        .instructions h3 {
+            margin-top: 0;
+            color: #3498db;
+        }
+        
+        .instructions ul {
+            margin-bottom: 0;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="{{ url_for('index') }}" class="back-link">&larr; Back to Menu</a>
+        
+        <h1>Create League</h1>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        
+        <div class="instructions">
+            <h3>League Creation Instructions</h3>
+            <p>Enter the names of teams to include in your league, one team name per line.</p>
+            <ul>
+                <li>Teams should have unique names</li>
+                <li>Names should be reasonably short (under 22 characters)</li>
+                <li>You need at least 2 teams to create a league</li>
+                <li>The system will automatically generate a round-robin fixture list</li>
+            </ul>
+        </div>
+        
+        <form action="{{ url_for('create_league') }}" method="post">
+            <div class="form-section">
+                <label for="team_names">Team Names (one per line):</label>
+                <textarea name="team_names" id="team_names" required>Red Dragons FC
+Blue Lions FC
+Green Titans
+Yellow Strikers
+Black Knights
+White Eagles</textarea>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn">Create League</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

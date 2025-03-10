@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block title %}{% if player %}Edit{% else %}Create{% endif %} Player - ESMS{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>{% if player %}Edit{% else %}Create{% endif %} Player</h1>
+    
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label for="first_name">First Name</label>
+                            <input type="text" class="form-control" id="first_name" name="first_name" value="{{ player.first_name if player else '' }}" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label for="last_name">Last Name</label>
+                            <input type="text" class="form-control" id="last_name" name="last_name" value="{{ player.last_name if player else '' }}" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group mb-3">
+                            <label for="age">Age</label>
+                            <input type="number" class="form-control" id="age" name="age" min="16" max="45" value="{{ player.age if player else 25 }}" required>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mb-3">
+                            <label for="nationality">Nationality</label>
+                            <select class="form-control" id="nationality" name="nationality" required>
+                                <option value="">-- Select Nationality --</option>
+                                <option value="England" {% if player and player.nationality == 'England' %}selected{% endif %}>England</option>
+                                <option value="Spain" {% if player and player.nationality == 'Spain' %}selected{% endif %}>Spain</option>
+                                <option value="Germany" {% if player and player.nationality == 'Germany' %}selected{% endif %}>Germany</option>
+                                <option value="France" {% if player and player.nationality == 'France' %}selected{% endif %}>France</option>
+                                <option value="Italy" {% if player and player.nationality == 'Italy' %}selected{% endif %}>Italy</option>
+                                <option value="Netherlands" {% if player and player.nationality == 'Netherlands' %}selected{% endif %}>Netherlands</option>
+                                <option value="Belgium" {% if player and player.nationality == 'Belgium' %}selected{% endif %}>Belgium</option>
+                                <option value="Portugal" {% if player and player.nationality == 'Portugal' %}selected{% endif %}>Portugal</option>
+                                <option value="Brazil" {% if player and player.nationality == 'Brazil' %}selected{% endif %}>Brazil</option>
+                                <option value="Argentina" {% if player and player.nationality == 'Argentina' %}selected{% endif %}>Argentina</option>
+                                <option value="Uruguay" {% if player and player.nationality == 'Uruguay' %}selected{% endif %}>Uruguay</option>
+                                <option value="United States" {% if player and player.nationality == 'United States' %}selected{% endif %}>United States</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mb-3">
+                            <label for="primary_position">Primary Position</label>
+                            <select class="form-control" id="primary_position" name="primary_position" required>
+                                <option value="">-- Select Position --</option>
+                                <option value="GK" {% if player and player.primary_position == 'GK' %}selected{% endif %}>Goalkeeper (GK)</option>
+                                <option value="LB" {% if player and player.primary_position == 'LB' %}selected{% endif %}>Left Back (LB)</option>
+                                <option value="CB" {% if player and player.primary_position == 'CB' %}selected{% endif %}>Center Back (CB)</option>
+                                <option value="RB" {% if player and player.primary_position == 'RB' %}selected{% endif %}>Right Back (RB)</option>
+                                <option value="DM" {% if player and player.primary_position == 'DM' %}selected{% endif %}>Defensive Midfielder (DM)</option>
+                                <option value="CM" {% if player and player.primary_position == 'CM' %}selected{% endif %}>Central Midfielder (CM)</option>
+                                <option value="LM" {% if player and player.primary_position == 'LM' %}selected{% endif %}>Left Midfielder (LM)</option>
+                                <option value="RM" {% if player and player.primary_position == 'RM' %}selected{% endif %}>Right Midfielder (RM)</option>
+                                <option value="AM" {% if player and player.primary_position == 'AM' %}selected{% endif %}>Attacking Midfielder (AM)</option>
+                                <option value="LW" {% if player and player.primary_position == 'LW' %}selected{% endif %}>Left Winger (LW)</option>
+                                <option value="RW" {% if player and player.primary_position == 'RW' %}selected{% endif %}>Right Winger (RW)</option>
+                                <option value="ST" {% if player and player.primary_position == 'ST' %}selected{% endif %}>Striker (ST)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <h4 class="mt-4">Player Attributes</h4>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label for="speed">Speed (1-20)</label>
+                            <input type="range" class="form-range" min="1" max="20" id="speed" name="speed" value="{{ player.speed if player else 10 }}">
+                            <div class="d-flex justify-content-between">
+                                <small>1</small>
+                                <small id="speed-value">{{ player.speed if player else 10 }}</small>
+                                <small>20</small>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="stamina">Stamina (1-20)</label>
+                            <input type="range" class="form-range" min="1" max="20" id="stamina" name="stamina" value="{{ player.stamina if player else 10 }}">
+                            <div class="d-flex justify-content-between">
+                                <small>1</small>
+                                <small id="stamina-value">{{ player.stamina if player else 10 }}</small>
+                                <small>20</small>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="technique">Technique (1-20)</label>
+                            <input type="range" class="form-range" min="1" max="20" id="technique" name="technique" value="{{ player.technique if player else 10 }}">
+                            <div class="d-flex justify-content-between">
+                                <small>1</small>
+                                <small id="technique-value">{{ player.technique if player else 10 }}</small>
+                                <small>20</small>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="passing">Passing (1-20)</label>
+                            <input type="range" class="form-range" min="1" max="20" id="passing" name="passing" value="{{ player.passing if player else 10 }}">
+                            <div class="d-flex justify-content-between">
+                                <small>1</small>
+                                <small id="passing-value">{{ player.passing if player else 10 }}</small>
+                                <small>20</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label for="shooting">Shooting (1-20)</label>
+                            <input type="range" class="form-range" min="1" max="20" id="shooting" name="shooting" value="{{ player.shooting if player else 10 }}">
+                            <div class="d-flex justify-content-between">
+                                <small>1</small>
+                                <small id="shooting-value">{{ player.shooting if player else 10 }}</small>
+                                <small>20</small>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="tackling">Tackling (1-20)</label>
+                            <input type="range" class="form-range" min="1" max="20" id="tackling" name="tackling" value="{{ player.tackling if player else 10 }}">
+                            <div class="d-flex justify-content-between">
+                                <small>1</small>
+                                <small id="tackling-value">{{ player.tackling if player else 10 }}</small>
+                                <small>20</small>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="heading">Heading (1-20)</label>
+                            <input type="range" class="form-range" min="1" max="20" id="heading" name="heading" value="{{ player.heading if player else 10 }}">
+                            <div class="d-flex justify-content-between">
+                                <small>1</small>
+                                <small id="heading-value">{{ player.heading if player else 10 }}</small>
+                                <small>20</small>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="goalkeeper">Goalkeeper (1-20)</label>
+                            <input type="range" class="form-range" min="1" max="20" id="goalkeeper" name="goalkeeper" value="{{ player.goalkeeper if player else 10 }}">
+                            <div class="d-flex justify-content-between">
+                                <small>1</small>
+                                <small id="goalkeeper-value">{{ player.goalkeeper if player else 10 }}</small>
+                                <small>20</small>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="positioning">Positioning (1-20)</label>
+                            <input type="range" class="form-range" min="1" max="20" id="positioning" name="positioning" value="{{ player.positioning if player else 10 }}">
+                            <div class="d-flex justify-content-between">
+                                <small>1</small>
+                                <small id="positioning-value">{{ player.positioning if player else 10 }}</small>
+                                <small>20</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">Save Player</button>
+                    <a href="{{ url_for('players') }}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Update display values when sliders change
+    const attributes = ['speed', 'stamina', 'technique', 'passing', 'shooting', 
+                       'tackling', 'heading', 'goalkeeper', 'positioning'];
+                       
+    attributes.forEach(attr => {
+        const slider = document.getElementById(attr);
+        const valueDisplay = document.getElementById(`${attr}-value`);
+        
+        if (slider && valueDisplay) {
+            // Update on page load
+            valueDisplay.textContent = slider.value;
+            
+            // Update when slider changes
+            slider.addEventListener('input', function() {
+                valueDisplay.textContent = this.value;
+            });
+        }
+    });
+    
+    // Auto-adjust attributes based on position
+    const positionSelect = document.getElementById('primary_position');
+    
+    if (positionSelect) {
+        positionSelect.addEventListener('change', function() {
+            const position = this.value;
+            if (!position) return;
+            
+            // Only adjust if creating a new player (not editing)
+            if (window.location.href.includes('player_new')) {
+                adjustAttributesForPosition(position);
+            }
+        });
+    }
+    
+    function adjustAttributesForPosition(position) {
+        // Reset all to average
+        attributes.forEach(attr => {
+            document.getElementById(attr).value = 10;
+            document.getElementById(`${attr}-value`).textContent = 10;
+        });
+        
+        // Adjust based on position
+        if (position === 'GK') {  // Goalkeeper
+            setAttr('goalkeeper', 16);
+            setAttr('positioning', 14);
+            setAttr('shooting', 4);
+        } 
+        else if (['CB', 'LB', 'RB'].includes(position)) {  // Defenders
+            setAttr('tackling', 16);
+            setAttr('positioning', 15);
+            if (position === 'CB') {
+                setAttr('heading', 15);
+                setAttr('speed', 11);
+            } else {
+                setAttr('speed', 14);
+                setAttr('stamina', 14);
+            }
+        }
+        else if (['DM', 'CM'].includes(position)) {  // Midfielders
+            setAttr('passing', 14);
+            setAttr('stamina', 15);
+            if (position === 'DM') {
+                setAttr('tackling', 14);
+                setAttr('positioning', 14);
+            } else {
+                setAttr('technique', 14);
+                setAttr('passing', 15);
+            }
+        }
+        else if (['LM', 'RM', 'AM'].includes(position)) {  // Advanced Midfielders
+            setAttr('passing', 15);
+            setAttr('technique', 15);
+            if (position === 'AM') {
+                setAttr('shooting', 14);
+                setAttr('passing', 16);
+            } else {
+                setAttr('speed', 15);
+                setAttr('stamina', 14);
+            }
+        }
+        else if (['LW', 'RW'].includes(position)) {  // Wingers
+            setAttr('speed', 16);
+            setAttr('technique', 15);
+            setAttr('shooting', 13);
+        }
+        else if (['ST', 'CF'].includes(position)) {  // Strikers
+            setAttr('shooting', 16);
+            setAttr('heading', 14);
+            setAttr('speed', 14);
+            setAttr('tackling', 7);
+        }
+    }
+    
+    function setAttr(attr, value) {
+        document.getElementById(attr).value = value;
+        document.getElementById(`${attr}-value`).textContent = value;
+    }
+});
+</script>
+{% endblock %}

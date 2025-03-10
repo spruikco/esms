@@ -1,0 +1,57 @@
+<!-- templates/submit_lineup.html -->
+<div class="row">
+    <div class="col-md-8">
+        <h4>Starting XI</h4>
+        <div class="alert alert-info">
+            Select exactly 11 players for your starting lineup.
+        </div>
+        
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Position</th>
+                    <th>Player</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pos in positions %}
+                <tr>
+                    <td>{{ pos }}</td>
+                    <td>
+                        <select name="starter_{{ pos }}" class="form-control">
+                            <option value="">-- Select Player --</option>
+                            {% for player in players %}
+                            <option value="{{ player.id }}" 
+                                {% if player.id in current_starters and current_positions.get(player.id) == pos %}selected{% endif %}>
+                                {{ player.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="col-md-4">
+        <h4>Substitutes (Max 5)</h4>
+        <div class="alert alert-info">
+            Select up to 5 substitutes.
+        </div>
+        
+        <div class="form-group">
+            {% for i in range(5) %}
+            <select name="sub_{{ i }}" class="form-control mb-2">
+                <option value="">-- Select Substitute {{ i+1 }} --</option>
+                {% for player in players %}
+                <option value="{{ player.id }}" 
+                    {% if player.id in current_subs and loop.index0 == i %}selected{% endif %}>
+                    {{ player.name }}
+                </option>
+                {% endfor %}
+            </select>
+            {% endfor %}
+        </div>
+    </div>
+</div>

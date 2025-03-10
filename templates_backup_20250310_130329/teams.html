@@ -42,8 +42,8 @@
                     </div>
                     <div class="card-footer">
                         <a href="{{ url_for('team.team_detail', team_id=team.id) }}" class="btn btn-info btn-sm">View Details</a>
-                        <a href="{{ url_for('team.formation', team_id=team.id) }}" class="btn btn-success btn-sm">Formation</a>
-                        <a href="{{ url_for('team.edit', team_id=team.id) }}" class="btn btn-warning btn-sm">Edit</a>
+                        <a href="{{ url_for('team_formation', team_id=team.id) }}" class="btn btn-success btn-sm">Formation</a>
+                        <a href="{{ url_for('team_edit', team_id=team.id) }}" class="btn btn-warning btn-sm">Edit</a>
                     </div>
                 </div>
             </div>

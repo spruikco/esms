@@ -1,460 +1,523 @@
 /**
  * Formation Editor for ESMS
- * Interactive canvas for positioning players on a football pitch
+ * Allows visual editing of team formations
  */
 
-const formationEditor = {
-    canvas: null,
-    ctx: null,
-    players: [],
-    selectedPlayer: null,
-    isDragging: false,
-    fieldWidth: 600,
-    fieldHeight: 400,
-    teamId: null,
-    
-    // Formation templates with player positions (x, y as percentages of field)
-    formations: {
-        '4-4-2': [
-            { position: 'GK', x: 0.06, y: 0.5 },
-            { position: 'LB', x: 0.2, y: 0.2 },
-            { position: 'CB', x: 0.2, y: 0.4 },
-            { position: 'CB', x: 0.2, y: 0.6 },
-            { position: 'RB', x: 0.2, y: 0.8 },
-            { position: 'LM', x: 0.4, y: 0.2 },
-            { position: 'CM', x: 0.4, y: 0.4 },
-            { position: 'CM', x: 0.4, y: 0.6 },
-            { position: 'RM', x: 0.4, y: 0.8 },
-            { position: 'ST', x: 0.6, y: 0.4 },
-            { position: 'ST', x: 0.6, y: 0.6 }
-        ],
-        '4-3-3': [
-            { position: 'GK', x: 0.06, y: 0.5 },
-            { position: 'LB', x: 0.2, y: 0.2 },
-            { position: 'CB', x: 0.2, y: 0.4 },
-            { position: 'CB', x: 0.2, y: 0.6 },
-            { position: 'RB', x: 0.2, y: 0.8 },
-            { position: 'CM', x: 0.4, y: 0.3 },
-            { position: 'CM', x: 0.4, y: 0.5 },
-            { position: 'CM', x: 0.4, y: 0.7 },
-            { position: 'LW', x: 0.6, y: 0.2 },
-            { position: 'ST', x: 0.6, y: 0.5 },
-            { position: 'RW', x: 0.6, y: 0.8 }
-        ],
-        '3-5-2': [
-            { position: 'GK', x: 0.06, y: 0.5 },
-            { position: 'CB', x: 0.2, y: 0.3 },
-            { position: 'CB', x: 0.2, y: 0.5 },
-            { position: 'CB', x: 0.2, y: 0.7 },
-            { position: 'LWB', x: 0.35, y: 0.1 },
-            { position: 'CM', x: 0.4, y: 0.3 },
-            { position: 'CM', x: 0.4, y: 0.5 },
-            { position: 'CM', x: 0.4, y: 0.7 },
-            { position: 'RWB', x: 0.35, y: 0.9 },
-            { position: 'ST', x: 0.6, y: 0.4 },
-            { position: 'ST', x: 0.6, y: 0.6 }
-        ],
-        '5-3-2': [
-            { position: 'GK', x: 0.06, y: 0.5 },
-            { position: 'LWB', x: 0.2, y: 0.1 },
-            { position: 'CB', x: 0.2, y: 0.3 },
-            { position: 'CB', x: 0.2, y: 0.5 },
-            { position: 'CB', x: 0.2, y: 0.7 },
-            { position: 'RWB', x: 0.2, y: 0.9 },
-            { position: 'CM', x: 0.4, y: 0.3 },
-            { position: 'CM', x: 0.4, y: 0.5 },
-            { position: 'CM', x: 0.4, y: 0.7 },
-            { position: 'ST', x: 0.6, y: 0.4 },
-            { position: 'ST', x: 0.6, y: 0.6 }
-        ],
-        '4-2-3-1': [
-            { position: 'GK', x: 0.06, y: 0.5 },
-            { position: 'LB', x: 0.2, y: 0.2 },
-            { position: 'CB', x: 0.2, y: 0.4 },
-            { position: 'CB', x: 0.2, y: 0.6 },
-            { position: 'RB', x: 0.2, y: 0.8 },
-            { position: 'DM', x: 0.35, y: 0.35 },
-            { position: 'DM', x: 0.35, y: 0.65 },
-            { position: 'LW', x: 0.5, y: 0.2 },
-            { position: 'AM', x: 0.5, y: 0.5 },
-            { position: 'RW', x: 0.5, y: 0.8 },
-            { position: 'ST', x: 0.65, y: 0.5 }
-        ]
-    },
-    
-    initialize(canvasId, teamId) {
-        this.canvas = document.getElementById(canvasId);
-        if (!this.canvas) {
-            console.error('Canvas element not found!');
-            return;
-        }
-        
-        this.ctx = this.canvas.getContext('2d');
-        this.teamId = teamId;
-        
-        // Load team data
-        this.loadTeamData();
-        
-        // Enable interaction
-        this.setupEventListeners();
-        
-        // Formation selector
-        const formationSelect = document.getElementById('formation');
-        if (formationSelect) {
-            formationSelect.addEventListener('change', () => {
-                this.applyFormation(formationSelect.value);
-            });
-        }
-        
-        // Save button
-        const saveButton = document.getElementById('save-formation');
-        if (saveButton) {
-            saveButton.addEventListener('click', () => {
-                this.saveFormation();
-            });
-        }
-    },
-    
-    loadTeamData() {
-        fetch(`/api/formation/${this.teamId}`)
-            .then(response => response.json())
-            .then(data => {
-                // Set formation selector to current formation
-                const formationSelect = document.getElementById('formation');
-                if (formationSelect) {
-                    formationSelect.value = data.formation;
-                }
-                
-                // Initialize players
-                if (data.players && data.players.length > 0) {
-                    // Team already has players with positions
-                    this.players = data.players.map(player => ({
-                        id: player.id,
-                        name: player.name,
-                        position: player.position,
-                        x: player.x !== null ? player.x : (this.canvas.width * 0.3),
-                        y: player.y !== null ? player.y : (this.canvas.height * 0.5),
-                        radius: 15,
-                        color: this.getPositionColor(player.position)
-                    }));
-                } else {
-                    // Apply default formation
-                    this.applyFormation(data.formation || '4-4-2');
-                }
-                
-                // Initial draw
-                this.draw();
-            })
-            .catch(error => {
-                console.error('Error loading team data:', error);
-                // Apply a default formation as fallback
-                this.applyFormation('4-4-2');
-                this.draw();
-            });
-    },
-    
-    applyFormation(formationName) {
-        if (!this.formations[formationName]) {
-            console.error('Formation not found:', formationName);
-            return;
-        }
-        
-        const template = this.formations[formationName];
-        
-        // If we already have players, just update their positions
-        if (this.players.length > 0) {
-            // Try to match players to positions intelligently
-            template.forEach((slot, index) => {
-                // Find existing player with this position or use index
-                const existingPlayer = this.players.find(p => p.position === slot.position) || 
-                                       (index < this.players.length ? this.players[index] : null);
-                
-                if (existingPlayer) {
-                    existingPlayer.position = slot.position;
-                    existingPlayer.x = slot.x * this.canvas.width;
-                    existingPlayer.y = slot.y * this.canvas.height;
-                    existingPlayer.color = this.getPositionColor(slot.position);
-                }
-            });
-        } else {
-            // Create placeholder players if none exist
-            this.players = template.map((slot, index) => ({
-                id: index + 1,
-                name: `Player ${index + 1}`,
-                position: slot.position,
-                x: slot.x * this.canvas.width,
-                y: slot.y * this.canvas.height,
-                radius: 15,
-                color: this.getPositionColor(slot.position)
-            }));
-        }
-        
-        this.draw();
-    },
-    
-    setupEventListeners() {
-        this.canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
-        this.canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
-        this.canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
-        this.canvas.addEventListener('mouseout', this.handleMouseOut.bind(this));
-    },
-    
-    handleMouseDown(event) {
-        const mousePos = this.getMousePos(event);
-        
-        // Check if a player was clicked
-        this.players.forEach(player => {
-            const distance = Math.sqrt(
-                Math.pow(player.x - mousePos.x, 2) + 
-                Math.pow(player.y - mousePos.y, 2)
-            );
-            
-            if (distance < player.radius) {
-                this.selectedPlayer = player;
-                this.isDragging = true;
-            }
-        });
-        
-        this.draw();
-    },
-    
-    handleMouseMove(event) {
-        if (!this.isDragging || !this.selectedPlayer) return;
-        
-        const mousePos = this.getMousePos(event);
-        
-        // Keep player within field boundaries
-        this.selectedPlayer.x = Math.max(
-            this.selectedPlayer.radius, 
-            Math.min(mousePos.x, this.canvas.width - this.selectedPlayer.radius)
-        );
-        this.selectedPlayer.y = Math.max(
-            this.selectedPlayer.radius, 
-            Math.min(mousePos.y, this.canvas.height - this.selectedPlayer.radius)
-        );
-        
-        this.draw();
-    },
-    
-    handleMouseUp() {
-        this.isDragging = false;
-        this.selectedPlayer = null;
-    },
-    
-    handleMouseOut() {
-        this.isDragging = false;
-        this.selectedPlayer = null;
-    },
-    
-    getMousePos(event) {
-        const rect = this.canvas.getBoundingClientRect();
-        return {
-            x: event.clientX - rect.left,
-            y: event.clientY - rect.top
-        };
-    },
-    
-    draw() {
-        // Clear canvas
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        
-        // Draw field
-        this.drawField();
-        
-        // Draw players
-        this.players.forEach(player => {
-            this.drawPlayer(player);
-        });
-    },
-    
-    drawField() {
-        // Field background
-        this.ctx.fillStyle = '#4a8520';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        
-        // Field outline
-        this.ctx.strokeStyle = 'white';
-        this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(10, 10, this.canvas.width - 20, this.canvas.height - 20);
-        
-        // Center line
-        this.ctx.beginPath();
-        this.ctx.moveTo(this.canvas.width / 2, 10);
-        this.ctx.lineTo(this.canvas.width / 2, this.canvas.height - 10);
-        this.ctx.stroke();
-        
-        // Center circle
-        this.ctx.beginPath();
-        this.ctx.arc(this.canvas.width / 2, this.canvas.height / 2, 40, 0, Math.PI * 2);
-        this.ctx.stroke();
-        
-        // Penalty areas
-        // Left penalty area
-        const penAreaWidth = 80;
-        const penAreaHeight = 150;
-        this.ctx.strokeRect(
-            10, 
-            (this.canvas.height - penAreaHeight) / 2, 
-            penAreaWidth, 
-            penAreaHeight
-        );
-        
-        // Right penalty area
-        this.ctx.strokeRect(
-            this.canvas.width - 10 - penAreaWidth, 
-            (this.canvas.height - penAreaHeight) / 2, 
-            penAreaWidth, 
-            penAreaHeight
-        );
-        
-        // Goal areas
-        const goalAreaWidth = 30;
-        const goalAreaHeight = 80;
-        
-        // Left goal area
-        this.ctx.strokeRect(
-            10, 
-            (this.canvas.height - goalAreaHeight) / 2, 
-            goalAreaWidth, 
-            goalAreaHeight
-        );
-        
-        // Right goal area
-        this.ctx.strokeRect(
-            this.canvas.width - 10 - goalAreaWidth, 
-            (this.canvas.height - goalAreaHeight) / 2, 
-            goalAreaWidth, 
-            goalAreaHeight
-        );
-        
-        // Corner arcs
-        const cornerRadius = 10;
-        
-        // Top-left corner
-        this.ctx.beginPath();
-        this.ctx.arc(10, 10, cornerRadius, 0, Math.PI / 2);
-        this.ctx.stroke();
-        
-        // Top-right corner
-        this.ctx.beginPath();
-        this.ctx.arc(this.canvas.width - 10, 10, cornerRadius, Math.PI / 2, Math.PI);
-        this.ctx.stroke();
-        
-        // Bottom-left corner
-        this.ctx.beginPath();
-        this.ctx.arc(10, this.canvas.height - 10, cornerRadius, 0, -Math.PI / 2, true);
-        this.ctx.stroke();
-        
-        // Bottom-right corner
-        this.ctx.beginPath();
-        this.ctx.arc(this.canvas.width - 10, this.canvas.height - 10, cornerRadius, -Math.PI / 2, -Math.PI, true);
-        this.ctx.stroke();
-    },
-    
-    drawPlayer(player) {
-        // Player circle
-        this.ctx.beginPath();
-        this.ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
-        this.ctx.fillStyle = player.color;
-        this.ctx.fill();
-        this.ctx.lineWidth = 2;
-        this.ctx.strokeStyle = 'white';
-        this.ctx.stroke();
-        
-        // Position label
-        this.ctx.font = '10px Arial';
-        this.ctx.fillStyle = 'white';
-        this.ctx.textAlign = 'center';
-        this.ctx.textBaseline = 'middle';
-        this.ctx.fillText(player.position, player.x, player.y);
-        
-        // Player name (below the circle)
-        this.ctx.font = '9px Arial';
-        this.ctx.fillText(player.name, player.x, player.y + player.radius + 10, player.radius * 4);
-    },
-    
-    getPositionColor(position) {
-        // Color coding by position type
-        const positionColors = {
-            'GK': '#ffcc00', // Yellow
-            'CB': '#0066cc', // Blue
-            'LB': '#0099cc', // Light Blue
-            'RB': '#0099cc', // Light Blue
-            'LWB': '#33cccc', // Teal
-            'RWB': '#33cccc', // Teal
-            'DM': '#339933', // Green
-            'CM': '#33cc33', // Light Green
-            'LM': '#66cc33', // Lime
-            'RM': '#66cc33', // Lime
-            'AM': '#cc9933', // Orange
-            'LW': '#cc6633', // Brown
-            'RW': '#cc6633', // Brown
-            'CF': '#cc3333', // Red
-            'ST': '#cc3333'  // Red
-        };
-        
-        return positionColors[position] || '#999999'; // Default gray for unknown positions
-    },
-    
-    saveFormation() {
-        // Prepare players data
-        const playersData = this.players.map(player => ({
-            id: player.id,
-            position: player.position,
-            x: player.x,
-            y: player.y
-        }));
-        
-        // Get formation value from select
-        const formationSelect = document.getElementById('formation');
-        const formation = formationSelect ? formationSelect.value : '4-4-2';
-        
-        // Send to server
-        fetch(`/api/formation/${this.teamId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                formation: formation,
-                players: playersData
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Show success message
-                const messageElement = document.getElementById('save-message');
-                if (messageElement) {
-                    messageElement.textContent = 'Formation saved successfully!';
-                    messageElement.style.color = 'green';
-                    setTimeout(() => {
-                        messageElement.textContent = '';
-                    }, 3000);
-                } else {
-                    alert('Formation saved successfully!');
-                }
-            } else {
-                throw new Error('Failed to save formation');
-            }
-        })
-        .catch(error => {
-            console.error('Error saving formation:', error);
-            alert('Error saving formation. Please try again.');
-        });
-    }
+// Positions for different formation types
+const FORMATIONS = {
+  '4-4-2': [
+    { id: 'gk', name: 'Goalkeeper', x: 50, y: 90, playerId: null },
+    { id: 'lb', name: 'Left Back', x: 20, y: 70, playerId: null },
+    { id: 'cb1', name: 'Center Back (L)', x: 40, y: 70, playerId: null },
+    { id: 'cb2', name: 'Center Back (R)', x: 60, y: 70, playerId: null },
+    { id: 'rb', name: 'Right Back', x: 80, y: 70, playerId: null },
+    { id: 'lm', name: 'Left Midfield', x: 20, y: 50, playerId: null },
+    { id: 'cm1', name: 'Center Midfield (L)', x: 40, y: 50, playerId: null },
+    { id: 'cm2', name: 'Center Midfield (R)', x: 60, y: 50, playerId: null },
+    { id: 'rm', name: 'Right Midfield', x: 80, y: 50, playerId: null },
+    { id: 'st1', name: 'Striker (L)', x: 40, y: 30, playerId: null },
+    { id: 'st2', name: 'Striker (R)', x: 60, y: 30, playerId: null }
+  ],
+  '4-3-3': [
+    { id: 'gk', name: 'Goalkeeper', x: 50, y: 90, playerId: null },
+    { id: 'lb', name: 'Left Back', x: 20, y: 70, playerId: null },
+    { id: 'cb1', name: 'Center Back (L)', x: 40, y: 70, playerId: null },
+    { id: 'cb2', name: 'Center Back (R)', x: 60, y: 70, playerId: null },
+    { id: 'rb', name: 'Right Back', x: 80, y: 70, playerId: null },
+    { id: 'cdm', name: 'Defensive Midfield', x: 50, y: 50, playerId: null },
+    { id: 'cm1', name: 'Center Midfield (L)', x: 35, y: 45, playerId: null },
+    { id: 'cm2', name: 'Center Midfield (R)', x: 65, y: 45, playerId: null },
+    { id: 'lw', name: 'Left Wing', x: 20, y: 25, playerId: null },
+    { id: 'st', name: 'Striker', x: 50, y: 20, playerId: null },
+    { id: 'rw', name: 'Right Wing', x: 80, y: 25, playerId: null }
+  ],
+  '3-5-2': [
+    { id: 'gk', name: 'Goalkeeper', x: 50, y: 90, playerId: null },
+    { id: 'cb1', name: 'Center Back (L)', x: 30, y: 70, playerId: null },
+    { id: 'cb2', name: 'Center Back', x: 50, y: 70, playerId: null },
+    { id: 'cb3', name: 'Center Back (R)', x: 70, y: 70, playerId: null },
+    { id: 'lwb', name: 'Left Wing Back', x: 15, y: 55, playerId: null },
+    { id: 'cm1', name: 'Center Midfield (L)', x: 35, y: 50, playerId: null },
+    { id: 'cdm', name: 'Defensive Midfield', x: 50, y: 55, playerId: null },
+    { id: 'cm2', name: 'Center Midfield (R)', x: 65, y: 50, playerId: null },
+    { id: 'rwb', name: 'Right Wing Back', x: 85, y: 55, playerId: null },
+    { id: 'st1', name: 'Striker (L)', x: 40, y: 30, playerId: null },
+    { id: 'st2', name: 'Striker (R)', x: 60, y: 30, playerId: null }
+  ],
+  '5-3-2': [
+    { id: 'gk', name: 'Goalkeeper', x: 50, y: 90, playerId: null },
+    { id: 'lwb', name: 'Left Wing Back', x: 10, y: 70, playerId: null },
+    { id: 'cb1', name: 'Center Back (L)', x: 30, y: 75, playerId: null },
+    { id: 'cb2', name: 'Center Back', x: 50, y: 80, playerId: null },
+    { id: 'cb3', name: 'Center Back (R)', x: 70, y: 75, playerId: null },
+    { id: 'rwb', name: 'Right Wing Back', x: 90, y: 70, playerId: null },
+    { id: 'cm1', name: 'Center Midfield (L)', x: 30, y: 50, playerId: null },
+    { id: 'cm2', name: 'Center Midfield', x: 50, y: 50, playerId: null },
+    { id: 'cm3', name: 'Center Midfield (R)', x: 70, y: 50, playerId: null },
+    { id: 'st1', name: 'Striker (L)', x: 40, y: 30, playerId: null },
+    { id: 'st2', name: 'Striker (R)', x: 60, y: 30, playerId: null }
+  ],
+  '4-2-3-1': [
+    { id: 'gk', name: 'Goalkeeper', x: 50, y: 90, playerId: null },
+    { id: 'lb', name: 'Left Back', x: 20, y: 70, playerId: null },
+    { id: 'cb1', name: 'Center Back (L)', x: 40, y: 70, playerId: null },
+    { id: 'cb2', name: 'Center Back (R)', x: 60, y: 70, playerId: null },
+    { id: 'rb', name: 'Right Back', x: 80, y: 70, playerId: null },
+    { id: 'dm1', name: 'Defensive Mid (L)', x: 40, y: 55, playerId: null },
+    { id: 'dm2', name: 'Defensive Mid (R)', x: 60, y: 55, playerId: null },
+    { id: 'lam', name: 'Left Attacking Mid', x: 30, y: 40, playerId: null },
+    { id: 'cam', name: 'Center Attacking Mid', x: 50, y: 35, playerId: null },
+    { id: 'ram', name: 'Right Attacking Mid', x: 70, y: 40, playerId: null },
+    { id: 'st', name: 'Striker', x: 50, y: 20, playerId: null }
+  ]
 };
+
+class FormationEditor {
+  constructor(elementId) {
+    this.container = document.getElementById(elementId);
+    if (!this.container) {
+      console.error('Container element not found!');
+      return;
+    }
+    
+    // Get data attributes
+    this.teamId = this.container.getAttribute('data-team-id');
+    this.apiUrl = this.container.getAttribute('data-api-url');
+    this.saveUrl = this.container.getAttribute('data-save-url');
+    
+    // Initialize state
+    this.players = [];
+    this.availablePlayers = [];
+    this.selectedPlayers = [];
+    this.formation = {
+      name: '4-4-2',
+      positions: [...FORMATIONS['4-4-2']]
+    };
+    
+    // Initialize the editor
+    this.init();
+  }
+  
+  async init() {
+    // Clear the container first
+    while (this.container.firstChild) {
+      this.container.removeChild(this.container.firstChild);
+    }
+    
+    // Create editor layout
+    this.createLayout();
+    
+    // Load data
+    await this.loadData();
+    
+    // Setup event handlers
+    this.setupEventHandlers();
+    
+    // Initial render
+    this.render();
+  }
+  
+  createLayout() {
+    this.container.innerHTML = `
+      <div class="flex flex-col md:flex-row gap-4">
+        <!-- Controls panel -->
+        <div class="w-full md:w-1/4">
+          <div class="bg-white p-4 rounded shadow">
+            <h3 class="text-lg font-bold mb-4">Formation Controls</h3>
+            
+            <div class="mb-4">
+              <label class="block text-sm font-medium mb-1">Formation Type</label>
+              <select id="formation-select" class="w-full p-2 border rounded">
+                ${Object.keys(FORMATIONS).map(formation => 
+                  `<option value="${formation}">${formation}</option>`
+                ).join('')}
+              </select>
+            </div>
+            
+            <button id="save-formation" class="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">
+              Save Formation
+            </button>
+            
+            <div id="save-message" class="mt-2 text-center text-sm hidden"></div>
+          </div>
+          
+          <!-- Available Players -->
+          <div class="bg-white p-4 rounded shadow mt-4">
+            <h3 class="text-lg font-bold mb-4">Available Players</h3>
+            <div id="available-players" class="max-h-64 overflow-y-auto">
+              <!-- Players will be added here -->
+            </div>
+          </div>
+        </div>
+        
+        <!-- Pitch visualization -->
+        <div class="w-full md:w-3/4">
+          <div id="pitch" class="pitch rounded shadow">
+            <!-- Field markings -->
+            <div class="pitch-marking absolute inset-4 border rounded"></div>
+            
+            <!-- Center circle -->
+            <div class="absolute left-1/2 top-1/2 w-32 h-32 border-2 border-white rounded-full" style="transform: translate(-50%, -50%)"></div>
+            
+            <!-- Center line -->
+            <div class="absolute left-0 right-0 top-1/2 h-0.5 bg-white"></div>
+            
+            <!-- Penalty areas -->
+            <div class="absolute bottom-0 left-1/2 w-64 h-32 border-2 border-white" style="transform: translate(-50%, 0)"></div>
+            <div class="absolute top-0 left-1/2 w-64 h-32 border-2 border-white" style="transform: translate(-50%, 0)"></div>
+            
+            <!-- Goal areas -->
+            <div class="absolute bottom-0 left-1/2 w-32 h-12 border-2 border-white" style="transform: translate(-50%, 0)"></div>
+            <div class="absolute top-0 left-1/2 w-32 h-12 border-2 border-white" style="transform: translate(-50%, 0)"></div>
+            
+            <!-- Player positions will be added here -->
+            <div id="positions-container"></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
+  async loadData() {
+    try {
+      // Get formation data from API
+      const response = await fetch(this.apiUrl);
+      const data = await response.json();
+      
+      // Update formation type
+      this.formation.name = data.formation_type || '4-4-2';
+      document.getElementById('formation-select').value = this.formation.name;
+      
+      // Load positions
+      const positionsData = data.positions;
+      this.formation.positions = [...FORMATIONS[this.formation.name]];
+      
+      // Apply saved player assignments
+      if (positionsData) {
+        for (const posId in positionsData) {
+          const position = this.formation.positions.find(p => p.id === posId);
+          if (position) {
+            position.playerId = positionsData[posId];
+          }
+        }
+      }
+      
+      // Get players data
+      // In a real app, you'd fetch this from your API
+      // For now, we'll create sample data
+      this.players = await this.fetchPlayers();
+      
+      // Separate available and selected players
+      this.updatePlayerLists();
+      
+    } catch (error) {
+      console.error('Error loading formation data:', error);
+      // Show error message
+      const saveMessage = document.getElementById('save-message');
+      saveMessage.textContent = 'Error loading data. Please try again.';
+      saveMessage.classList.remove('hidden', 'text-green-500');
+      saveMessage.classList.add('text-red-500');
+      setTimeout(() => saveMessage.classList.add('hidden'), 3000);
+    }
+  }
+  
+  async fetchPlayers() {
+    // In a real app, you'd fetch this from your API
+    // For now we'll use placeholder data
+    try {
+      const response = await fetch(`/api/team/${this.teamId}/players`);
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching players:', error);
+      // Return sample data as fallback
+      return [
+        { id: 1, name: 'John Smith', position: 'GK', number: 1 },
+        { id: 2, name: 'David Jones', position: 'CB', number: 2 },
+        { id: 3, name: 'Michael Brown', position: 'CB', number: 3 },
+        { id: 4, name: 'Robert Wilson', position: 'LB', number: 4 },
+        { id: 5, name: 'James Taylor', position: 'RB', number: 5 },
+        { id: 6, name: 'William Davis', position: 'CM', number: 6 },
+        { id: 7, name: 'Richard Miller', position: 'CM', number: 7 },
+        { id: 8, name: 'Joseph Allen', position: 'DM', number: 8 },
+        { id: 9, name: 'Thomas Young', position: 'LM', number: 9 },
+        { id: 10, name: 'Charles King', position: 'RM', number: 10 },
+        { id: 11, name: 'Daniel Scott', position: 'ST', number: 11 },
+        { id: 12, name: 'Matthew Green', position: 'ST', number: 12 },
+        { id: 13, name: 'Anthony Baker', position: 'GK', number: 13 },
+        { id: 14, name: 'Donald Nelson', position: 'CM', number: 14 },
+        { id: 15, name: 'Mark Carter', position: 'ST', number: 15 }
+      ];
+    }
+  }
+  
+  updatePlayerLists() {
+    // Get all playerIds currently in positions
+    const assignedPlayerIds = this.formation.positions
+      .filter(pos => pos.playerId)
+      .map(pos => pos.playerId);
+    
+    // Update available and selected lists
+    this.availablePlayers = this.players.filter(p => !assignedPlayerIds.includes(p.id));
+    this.selectedPlayers = this.players.filter(p => assignedPlayerIds.includes(p.id));
+  }
+  
+  setupEventHandlers() {
+    // Formation select change handler
+    document.getElementById('formation-select').addEventListener('change', (e) => {
+      this.changeFormation(e.target.value);
+    });
+    
+    // Save button click handler
+    document.getElementById('save-formation').addEventListener('click', () => {
+      this.saveFormation();
+    });
+  }
+  
+  changeFormation(formationName) {
+    if (!FORMATIONS[formationName]) {
+      console.error(`Formation ${formationName} not found`);
+      return;
+    }
+    
+    // Save current player assignments
+    const currentAssignments = {};
+    this.formation.positions.forEach(pos => {
+      if (pos.playerId) {
+        currentAssignments[pos.id] = pos.playerId;
+      }
+    });
+    
+    // Update formation
+    this.formation.name = formationName;
+    this.formation.positions = [...FORMATIONS[formationName]];
+    
+    // Try to preserve player assignments where position IDs match
+    this.formation.positions.forEach(pos => {
+      if (currentAssignments[pos.id]) {
+        pos.playerId = currentAssignments[pos.id];
+      }
+    });
+    
+    // Update player lists
+    this.updatePlayerLists();
+    
+    // Re-render
+    this.render();
+  }
+  
+  async saveFormation() {
+    // Prepare data for saving
+    const positionsData = {};
+    this.formation.positions.forEach(pos => {
+      if (pos.playerId) {
+        positionsData[pos.id] = pos.playerId;
+      }
+    });
+    
+    const formationData = {
+      team_id: this.teamId,
+      formation_type: this.formation.name,
+      positions: positionsData
+    };
+    
+    try {
+      // Save to server
+      const response = await fetch(this.saveUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formationData)
+      });
+      
+      const result = await response.json();
+      
+      // Show success/error message
+      const saveMessage = document.getElementById('save-message');
+      if (result.success) {
+        saveMessage.textContent = 'Formation saved successfully!';
+        saveMessage.classList.remove('hidden', 'text-red-500');
+        saveMessage.classList.add('text-green-500');
+      } else {
+        saveMessage.textContent = result.error || 'Error saving formation.';
+        saveMessage.classList.remove('hidden', 'text-green-500');
+        saveMessage.classList.add('text-red-500');
+      }
+      
+      // Hide message after 3 seconds
+      setTimeout(() => saveMessage.classList.add('hidden'), 3000);
+      
+    } catch (error) {
+      console.error('Error saving formation:', error);
+      
+      // Show error message
+      const saveMessage = document.getElementById('save-message');
+      saveMessage.textContent = 'Error saving formation. Please try again.';
+      saveMessage.classList.remove('hidden', 'text-green-500');
+      saveMessage.classList.add('text-red-500');
+      setTimeout(() => saveMessage.classList.add('hidden'), 3000);
+    }
+  }
+  
+  render() {
+    // Render player positions
+    this.renderPositions();
+    
+    // Render available players
+    this.renderAvailablePlayers();
+  }
+  
+  renderPositions() {
+    const container = document.getElementById('positions-container');
+    if (!container) return;
+    
+    // Clear existing positions
+    container.innerHTML = '';
+    
+    // Add position elements
+    this.formation.positions.forEach(position => {
+      const player = position.playerId ? 
+        this.players.find(p => p.id === position.playerId) : null;
+      
+      const positionEl = document.createElement('div');
+      positionEl.className = `player-position ${player ? 'occupied' : ''}`;
+      positionEl.style.left = `${position.x}%`;
+      positionEl.style.top = `${position.y}%`;
+      positionEl.setAttribute('data-position-id', position.id);
+      
+      if (player) {
+        positionEl.innerHTML = `
+          <div class="font-bold text-lg">${player.number || '#'}</div>
+          <div class="text-xs mt-1 max-w-full px-1 truncate">
+            ${player.name.split(' ')[0]}
+          </div>
+        `;
+        
+        // Click to remove player
+        positionEl.addEventListener('click', () => {
+          this.removePlayerFromPosition(position.id);
+        });
+      } else {
+        positionEl.innerHTML = `
+          <div class="text-xs text-center text-gray-700 px-1">${position.name}</div>
+        `;
+      }
+      
+      // Add dragover event listeners for drop target
+      positionEl.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        positionEl.classList.add('dragging-over');
+      });
+      
+      positionEl.addEventListener('dragleave', () => {
+        positionEl.classList.remove('dragging-over');
+      });
+      
+      positionEl.addEventListener('drop', (e) => {
+        e.preventDefault();
+        positionEl.classList.remove('dragging-over');
+        
+        // Get the dragged player ID
+        const playerId = e.dataTransfer.getData('player-id');
+        if (playerId) {
+          this.assignPlayerToPosition(parseInt(playerId), position.id);
+        }
+      });
+      
+      container.appendChild(positionEl);
+    });
+  }
+  
+  renderAvailablePlayers() {
+    const container = document.getElementById('available-players');
+    if (!container) return;
+    
+    // Clear container
+    container.innerHTML = '';
+    
+    if (this.availablePlayers.length === 0) {
+      container.innerHTML = '<p class="text-gray-500 text-sm">No available players</p>';
+      return;
+    }
+    
+    // Add player items
+    this.availablePlayers.forEach(player => {
+      const playerEl = document.createElement('div');
+      playerEl.className = 'player-item';
+      playerEl.setAttribute('draggable', 'true');
+      playerEl.setAttribute('data-player-id', player.id);
+      
+      playerEl.innerHTML = `
+        <div class="player-icon">${player.number || '#'}</div>
+        <div class="text-sm truncate">${player.name} (${player.position})</div>
+      `;
+      
+      // Setup drag events
+      playerEl.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('player-id', player.id);
+      });
+      
+      container.appendChild(playerEl);
+    });
+  }
+  
+  assignPlayerToPosition(playerId, positionId) {
+    // Find the position
+    const position = this.formation.positions.find(p => p.id === positionId);
+    if (!position) return;
+    
+    // Find the player
+    const player = this.players.find(p => p.id === playerId);
+    if (!player) return;
+    
+    // If this position already has a player, make them available again
+    if (position.playerId) {
+      const currentPlayer = this.players.find(p => p.id === position.playerId);
+      if (currentPlayer) {
+        this.availablePlayers.push(currentPlayer);
+      }
+    }
+    
+    // If this player is already in another position, remove them
+    const currentPosition = this.formation.positions.find(p => p.playerId === playerId);
+    if (currentPosition) {
+      currentPosition.playerId = null;
+    }
+    
+    // Assign player to position
+    position.playerId = playerId;
+    
+    // Update player lists
+    this.updatePlayerLists();
+    
+    // Re-render
+    this.render();
+  }
+  
+  removePlayerFromPosition(positionId) {
+    // Find the position
+    const position = this.formation.positions.find(p => p.id === positionId);
+    if (!position || !position.playerId) return;
+    
+    // Find the player
+    const player = this.players.find(p => p.id === position.playerId);
+    if (!player) return;
+    
+    // Remove assignment
+    position.playerId = null;
+    
+    // Update player lists
+    this.updatePlayerLists();
+    
+    // Re-render
+    this.render();
+  }
+}
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    // Check if we're on the formation page
-    const canvas = document.getElementById('formation-canvas');
-    if (canvas) {
-        const teamId = canvas.getAttribute('data-team-id');
-        if (teamId) {
-            formationEditor.initialize('formation-canvas', teamId);
-        } else {
-            console.error('Team ID not specified');
-        }
-    }
+  const editorContainer = document.getElementById('formation-editor');
+  if (editorContainer) {
+    new FormationEditor('formation-editor');
+  }
 });

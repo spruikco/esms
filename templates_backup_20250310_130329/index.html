@@ -1,0 +1,89 @@
+<!-- templates/index.html -->
+{% extends "base.html" %}
+
+{% block title %}ESMS - Enhanced Soccer Match Simulator{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="jumbotron bg-light p-5 rounded">
+        <h1 class="display-4">Enhanced Soccer Match Simulator</h1>
+        <p class="lead">A realistic soccer match simulation engine with tactical depth and detailed player attributes</p>
+        
+        {% if message %}
+            <div class="alert alert-info">{{ message }}</div>
+        {% endif %}
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Manual Match Simulation</h4>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('match.simulate') }}" method="post" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="home_teamsheet" class="form-label">Home Team Teamsheet:</label>
+                            <input type="file" class="form-control" id="home_teamsheet" name="home_teamsheet" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="away_teamsheet" class="form-label">Away Team Teamsheet:</label>
+                            <input type="file" class="form-control" id="away_teamsheet" name="away_teamsheet" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="home_roster" class="form-label">Home Team Roster:</label>
+                            <input type="file" class="form-control" id="home_roster" name="home_roster" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="away_roster" class="form-label">Away Team Roster:</label>
+                            <input type="file" class="form-control" id="away_roster" name="away_roster" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Simulate Match</button>
+                    </form>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('match.sample') }}" class="btn btn-success">Run Sample Match</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4>Database Match System</h4>
+                </div>
+                <div class="card-body">
+                    <p>Create teams, manage players, schedule matches, and run simulations using the database-backed system.</p>
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('team.list_teams') }}" class="btn btn-info mb-2">Manage Teams</a>
+                        <a href="{{ url_for('player.list_players') }}" class="btn btn-info mb-2">Manage Players</a>
+                        <a href="{{ url_for('match.schedule') }}" class="btn btn-info mb-2">Match Schedule</a>
+                        <a href="{{ url_for('match.list_results') }}" class="btn btn-info">Match Results</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h4>Recent Matches</h4>
+                </div>
+                <div class="card-body">
+                    {% set matches = matches|default([]) %}
+                    {% if matches %}
+                        <ul class="list-group">
+                            {% for match in matches %}
+                                <li class="list-group-item">
+                                    {{ match.scheduled_time.strftime('%Y-%m-%d') }}:
+                                    {{ match.home_team.name }} {{ match.home_score }} - {{ match.away_score }} {{ match.away_team.name }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>No recent matches found. Start simulating matches to see results here.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
